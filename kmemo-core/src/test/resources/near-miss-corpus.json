@@ -1,0 +1,767 @@
+{
+  "pairs": [
+    {
+      "a": "whats the capital of Australia",
+      "b": "whats the capital of Austria",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Two country names one letter apart will embed almost identically but have different answers."
+    },
+    {
+      "a": "How do I center a div horizontally in Tailwind CSS?",
+      "b": "How do I center a div horizontally in Bootstrap?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Same layout task but the framework determines the actual class names to use."
+    },
+    {
+      "a": "What year did Einstein win the Nobel Prize in Physics?",
+      "b": "What year did Niels Bohr win the Nobel Prize in Physics?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Both are early 20th century physicists in an identical template, but the years differ."
+    },
+    {
+      "a": "What is the best way to manage global state in a React app?",
+      "b": "What is the best way to manage global state in a Vue app?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "React and Vue have entirely different state ecosystems despite the identical phrasing."
+    },
+    {
+      "a": "How do I reverse a string in Python?",
+      "b": "How do I reverse a string in Ruby?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Two scripting languages in the same slot produce different idiomatic code."
+    },
+    {
+      "a": "How do I set up a VPC peering connection in AWS?",
+      "b": "How do I set up a VPC peering connection in Azure?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Cloud provider swap changes every console step and CLI command in the answer."
+    },
+    {
+      "a": "Do I need a visa to travel to Japan as a US citizen?",
+      "b": "Do I need a visa to travel to Vietnam as a US citizen?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Destination country determines the visa answer even though the sentence is otherwise identical."
+    },
+    {
+      "a": "How long should I bake salmon fillets at 400F?",
+      "b": "How long should I bake chicken breasts at 400F?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Same oven temperature and phrasing, but cook times for fish and poultry differ a lot."
+    },
+    {
+      "a": "Who wrote the novel Brave New World?",
+      "b": "Who wrote the novel Nineteen Eighty-Four?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Two canonical dystopian novels sit in the same slot but have different authors."
+    },
+    {
+      "a": "What is the default port for PostgreSQL?",
+      "b": "What is the default port for MySQL?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Database swap yields 5432 vs 3306 despite near-identical token overlap."
+    },
+    {
+      "a": "How do I install Docker on Ubuntu 22.04?",
+      "b": "How do I install Podman on Ubuntu 22.04?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Container runtimes are frequently discussed together but have different install steps."
+    },
+    {
+      "a": "What is the expense ratio of VTI?",
+      "b": "What is the expense ratio of VOO?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Two popular index ETFs with three-letter tickers and different fee figures."
+    },
+    {
+      "a": "How much protein is in 100g of chicken breast?",
+      "b": "How much protein is in 100g of salmon?",
+      "shouldMatch": false,
+      "category": "entity-swap",
+      "note": "Nutrition template stays fixed while the food changes the numeric answer."
+    },
+    {
+      "a": "Convert 100 USD to EUR",
+      "b": "Convert 250 USD to EUR",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "Only the amount changes, and most embedding models barely register the digit swap."
+    },
+    {
+      "a": "What are the top 5 highest grossing movies of all time?",
+      "b": "What are the top 10 highest grossing movies of all time?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "A cached list of 5 is an incomplete answer for a request for 10."
+    },
+    {
+      "a": "What are the new language features in Java 17?",
+      "b": "What are the new language features in Java 21?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "Both are LTS releases but the feature sets are completely different."
+    },
+    {
+      "a": "How long do I roast a 3 lb pork shoulder at 325F?",
+      "b": "How long do I roast a 6 lb pork shoulder at 325F?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "Weight roughly doubles the cook time while the sentence is otherwise identical."
+    },
+    {
+      "a": "What is a 15 percent tip on an 80 dollar bill?",
+      "b": "What is a 20 percent tip on an 80 dollar bill?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "Percentage swap changes the arithmetic result but almost nothing in the wording."
+    },
+    {
+      "a": "Give me a 7 day itinerary for Lisbon",
+      "b": "Give me a 10 day itinerary for Lisbon",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "Trip length changes the whole plan structure, not just its length."
+    },
+    {
+      "a": "How much do I need to save monthly to reach 100k in 10 years?",
+      "b": "How much do I need to save monthly to reach 100k in 15 years?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "The time horizon drives the monthly figure, so serving the cached answer misleads."
+    },
+    {
+      "a": "What breaks when upgrading from Python 3.9 to 3.11?",
+      "b": "What breaks when upgrading from Python 3.9 to 3.12?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "One digit in the target version changes the list of removals and deprecations."
+    },
+    {
+      "a": "Monthly payment on a 300000 mortgage at 6 percent over 30 years?",
+      "b": "Monthly payment on a 300000 mortgage at 6 percent over 15 years?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "Term length materially changes the payment while sharing every other token."
+    },
+    {
+      "a": "How many calories are in 2 slices of pepperoni pizza?",
+      "b": "How many calories are in 4 slices of pepperoni pizza?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "Quantity swap doubles the answer and is trivially easy for a cache to miss."
+    },
+    {
+      "a": "Write a regex that matches exactly 3 digits",
+      "b": "Write a regex that matches exactly 4 digits",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "The cached pattern would be silently wrong for the new count."
+    },
+    {
+      "a": "What is the resting heart rate range for a 30 year old man?",
+      "b": "What is the resting heart rate range for a 60 year old man?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "Age changes the reference range in an otherwise word-for-word identical prompt."
+    },
+    {
+      "a": "How do I migrate my app to React 18?",
+      "b": "How do I migrate my app to React 19?",
+      "shouldMatch": false,
+      "category": "numeric-swap",
+      "note": "Adjacent major versions have distinct migration steps and breaking changes."
+    },
+    {
+      "a": "Convert 50 km to miles",
+      "b": "Convert 50 km to meters",
+      "shouldMatch": false,
+      "category": "unit-swap",
+      "note": "Same source quantity, different target unit, so the numeric result is unrelated."
+    },
+    {
+      "a": "Convert 100 USD to EUR",
+      "b": "Convert 100 USD to GBP",
+      "shouldMatch": false,
+      "category": "unit-swap",
+      "note": "Currency codes are three-letter tokens that embedding models treat as near synonyms."
+    },
+    {
+      "a": "What is 180 C in Fahrenheit?",
+      "b": "What is 180 C in Kelvin?",
+      "shouldMatch": false,
+      "category": "unit-swap",
+      "note": "Temperature scale swap changes the answer from 356 to 453 with a one word edit."
+    },
+    {
+      "a": "Convert 2 cups of flour to grams",
+      "b": "Convert 2 cups of flour to ounces",
+      "shouldMatch": false,
+      "category": "unit-swap",
+      "note": "Baking conversions differ by target unit while the ingredient and amount stay fixed."
+    },
+    {
+      "a": "What time is 3pm EST in UTC?",
+      "b": "What time is 3pm EST in PST?",
+      "shouldMatch": false,
+      "category": "unit-swap",
+      "note": "Timezone abbreviations are near-identical tokens with a several hour difference."
+    },
+    {
+      "a": "How many megabytes are in 4 GB?",
+      "b": "How many kilobytes are in 4 GB?",
+      "shouldMatch": false,
+      "category": "unit-swap",
+      "note": "Data unit swap moves the answer by three orders of magnitude."
+    },
+    {
+      "a": "Convert 10 Mbps to MB/s",
+      "b": "Convert 10 Mbps to Gbps",
+      "shouldMatch": false,
+      "category": "unit-swap",
+      "note": "Bits versus bytes versus scale prefix, all inside a very short similar string."
+    },
+    {
+      "a": "How much is 90 kg in pounds?",
+      "b": "How much is 90 kg in stone?",
+      "shouldMatch": false,
+      "category": "unit-swap",
+      "note": "Both are imperial weight units so the prompts are extremely close in embedding space."
+    },
+    {
+      "a": "How do I enable two factor authentication on GitHub?",
+      "b": "How do I disable two factor authentication on GitHub?",
+      "shouldMatch": false,
+      "category": "negation",
+      "note": "Enable and disable are near synonyms to an embedding model but opposite instructions."
+    },
+    {
+      "a": "How do I turn on format on save in VS Code?",
+      "b": "How do I turn off format on save in VS Code?",
+      "shouldMatch": false,
+      "category": "negation",
+      "note": "Single word polarity flip inverts the setting value the answer should give."
+    },
+    {
+      "a": "Which foods should I eat before a long run?",
+      "b": "Which foods should I not eat before a long run?",
+      "shouldMatch": false,
+      "category": "negation",
+      "note": "Adding not produces a disjoint list, but adds almost no embedding distance."
+    },
+    {
+      "a": "Give me reasons why you should use microservices",
+      "b": "Give me reasons why you should not use microservices",
+      "shouldMatch": false,
+      "category": "negation",
+      "note": "The negated form asks for the opposite argument entirely."
+    },
+    {
+      "a": "How do I make a column nullable in Postgres?",
+      "b": "How do I make a column not nullable in Postgres?",
+      "shouldMatch": false,
+      "category": "negation",
+      "note": "DROP NOT NULL versus SET NOT NULL, separated by a single token."
+    },
+    {
+      "a": "Which countries require a visa for US citizens?",
+      "b": "Which countries do not require a visa for US citizens?",
+      "shouldMatch": false,
+      "category": "negation",
+      "note": "Complementary sets of countries hidden behind a two word negation."
+    },
+    {
+      "a": "Why does my Docker container keep restarting?",
+      "b": "Why does my Docker container not restart?",
+      "shouldMatch": false,
+      "category": "negation",
+      "note": "Crash looping and failing to restart are opposite failure modes with opposite fixes."
+    },
+    {
+      "a": "How do I increase the JVM heap size?",
+      "b": "How do I decrease the JVM heap size?",
+      "shouldMatch": false,
+      "category": "polarity-antonym",
+      "note": "Increase and decrease sit close in embedding space but flip the intended flag value."
+    },
+    {
+      "a": "What are the advantages of using a monorepo?",
+      "b": "What are the disadvantages of using a monorepo?",
+      "shouldMatch": false,
+      "category": "polarity-antonym",
+      "note": "Pros and cons of the same topic are semantically near but factually opposite."
+    },
+    {
+      "a": "What foods raise your blood pressure?",
+      "b": "What foods lower your blood pressure?",
+      "shouldMatch": false,
+      "category": "polarity-antonym",
+      "note": "Raise and lower are antonyms that co-occur constantly in health text."
+    },
+    {
+      "a": "How do I gain weight on a vegetarian diet?",
+      "b": "How do I lose weight on a vegetarian diet?",
+      "shouldMatch": false,
+      "category": "polarity-antonym",
+      "note": "Opposite goals with the same dietary constraint and identical sentence frame."
+    },
+    {
+      "a": "How do I make my sourdough more sour?",
+      "b": "How do I make my sourdough less sour?",
+      "shouldMatch": false,
+      "category": "polarity-antonym",
+      "note": "More and less differ by two characters but reverse the fermentation advice."
+    },
+    {
+      "a": "How do I scale up a Kubernetes deployment?",
+      "b": "How do I scale down a Kubernetes deployment?",
+      "shouldMatch": false,
+      "category": "polarity-antonym",
+      "note": "Up and down are strongly co-located in embeddings yet mean opposite operations."
+    },
+    {
+      "a": "Why is my house too humid in the winter?",
+      "b": "Why is my house too dry in the winter?",
+      "shouldMatch": false,
+      "category": "polarity-antonym",
+      "note": "Humid versus dry inverts the diagnosis and the recommended appliance."
+    },
+    {
+      "a": "Explain how OAuth 2.0 works",
+      "b": "Explain how OAuth 2.0 works to a 5 year old",
+      "shouldMatch": false,
+      "category": "scope-shift",
+      "note": "The audience constraint demands a totally different register and level of detail."
+    },
+    {
+      "a": "Summarize the causes of World War 1 in one sentence",
+      "b": "Write a 2000 word essay on the causes of World War 1",
+      "shouldMatch": false,
+      "category": "scope-shift",
+      "note": "Same subject matter but the output length requirement differs by three orders of magnitude."
+    },
+    {
+      "a": "Give me a code example of a Python decorator",
+      "b": "Explain the theory behind Python decorators",
+      "shouldMatch": false,
+      "category": "scope-shift",
+      "note": "Code versus conceptual explanation are different deliverables for the same topic."
+    },
+    {
+      "a": "What is a Kalman filter?",
+      "b": "Derive the Kalman filter equations step by step",
+      "shouldMatch": false,
+      "category": "scope-shift",
+      "note": "A definition cannot substitute for a full mathematical derivation."
+    },
+    {
+      "a": "Give me a one line description of Kubernetes",
+      "b": "Give me a detailed architecture overview of Kubernetes",
+      "shouldMatch": false,
+      "category": "scope-shift",
+      "note": "Depth demand differs sharply while topic tokens dominate the embedding."
+    },
+    {
+      "a": "How does HTTPS work?",
+      "b": "How does HTTPS work at the packet level?",
+      "shouldMatch": false,
+      "category": "scope-shift",
+      "note": "Four extra words move the answer from an overview to a byte-by-byte handshake trace."
+    },
+    {
+      "a": "Write a haiku about the ocean",
+      "b": "Write a sonnet about the ocean",
+      "shouldMatch": false,
+      "category": "scope-shift",
+      "note": "Identical subject with a strict but different structural format requirement."
+    },
+    {
+      "a": "Give me bullet points on the French Revolution",
+      "b": "Give me a detailed year by year timeline of the French Revolution",
+      "shouldMatch": false,
+      "category": "scope-shift",
+      "note": "Output format and granularity both change even though the topic is unchanged."
+    },
+    {
+      "a": "What is the weather in Chicago today?",
+      "b": "What is the weather in Chicago tomorrow?",
+      "shouldMatch": false,
+      "category": "temporal",
+      "note": "One word shifts the forecast window and invalidates any cached response."
+    },
+    {
+      "a": "Who is the current CEO of Starbucks?",
+      "b": "Who was the CEO of Starbucks in 2010?",
+      "shouldMatch": false,
+      "category": "temporal",
+      "note": "Present tense versus a historical year point to different people."
+    },
+    {
+      "a": "What are the best JavaScript frameworks in 2024?",
+      "b": "What are the best JavaScript frameworks in 2025?",
+      "shouldMatch": false,
+      "category": "temporal",
+      "note": "Year tokens are nearly interchangeable in embedding space but scope the answer."
+    },
+    {
+      "a": "What was the S&P 500 closing price today?",
+      "b": "What was the S&P 500 closing price yesterday?",
+      "shouldMatch": false,
+      "category": "temporal",
+      "note": "Market data is date-specific and a stale cached figure is simply wrong."
+    },
+    {
+      "a": "What is the IRS standard deduction for tax year 2023?",
+      "b": "What is the IRS standard deduction for tax year 2024?",
+      "shouldMatch": false,
+      "category": "temporal",
+      "note": "Tax figures are indexed yearly so the cached amount would be out of date."
+    },
+    {
+      "a": "When is the next SpaceX launch?",
+      "b": "When was the last SpaceX launch?",
+      "shouldMatch": false,
+      "category": "temporal",
+      "note": "Next versus last flips the direction in time with almost no lexical change."
+    },
+    {
+      "a": "What are current 30 year mortgage rates?",
+      "b": "What were 30 year mortgage rates last year?",
+      "shouldMatch": false,
+      "category": "temporal",
+      "note": "Present versus past rates share nearly every token but not the number."
+    },
+    {
+      "a": "Is Postgres better than MySQL for analytics workloads?",
+      "b": "Is MySQL better than Postgres for analytics workloads?",
+      "shouldMatch": false,
+      "category": "comparative-direction",
+      "note": "Identical token bag with the comparison reversed, so the framing of the answer flips."
+    },
+    {
+      "a": "Convert 500 EUR to USD",
+      "b": "Convert 500 USD to EUR",
+      "shouldMatch": false,
+      "category": "comparative-direction",
+      "note": "Bag-of-words identical, but the conversion direction changes the result entirely."
+    },
+    {
+      "a": "How do I migrate a project from Redux to Zustand?",
+      "b": "How do I migrate a project from Zustand to Redux?",
+      "shouldMatch": false,
+      "category": "comparative-direction",
+      "note": "Migration direction determines which library the code examples target."
+    },
+    {
+      "a": "How do I convert a JSON string to a Python dict?",
+      "b": "How do I convert a Python dict to a JSON string?",
+      "shouldMatch": false,
+      "category": "comparative-direction",
+      "note": "json.loads versus json.dumps, distinguished only by argument order in the sentence."
+    },
+    {
+      "a": "Translate this paragraph from Spanish to English",
+      "b": "Translate this paragraph from English to Spanish",
+      "shouldMatch": false,
+      "category": "comparative-direction",
+      "note": "Source and target language swap produces output in a different language."
+    },
+    {
+      "a": "How much faster is Rust than Go at JSON parsing?",
+      "b": "How much faster is Go than Rust at JSON parsing?",
+      "shouldMatch": false,
+      "category": "comparative-direction",
+      "note": "Reversing the subject of the comparison inverts the premise being tested."
+    },
+    {
+      "a": "Should I switch from iPhone to Android?",
+      "b": "Should I switch from Android to iPhone?",
+      "shouldMatch": false,
+      "category": "comparative-direction",
+      "note": "Same two platforms, opposite starting point, so the tradeoffs discussed differ."
+    },
+    {
+      "a": "What is the formula to convert Celsius to Fahrenheit?",
+      "b": "What is the formula to convert Fahrenheit to Celsius?",
+      "shouldMatch": false,
+      "category": "comparative-direction",
+      "note": "Inverse formulas that share every word except the order of two unit names."
+    },
+    {
+      "a": "How do I undo my last git commit?",
+      "b": "I committed by mistake in git, how do I take that commit back?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Different wording and framing but the same underlying git operation is wanted."
+    },
+    {
+      "a": "How do I center a div horizontally and vertically with CSS?",
+      "b": "What is the best way to perfectly center a div using CSS?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Perfectly centering is the common idiom for both axes, so the need is identical."
+    },
+    {
+      "a": "What is the difference between TCP and UDP?",
+      "b": "How do TCP and UDP differ from one another?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Noun form versus verb form of the same comparison question."
+    },
+    {
+      "a": "Why is the sky blue?",
+      "b": "What makes the sky appear blue?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Classic explanation request reworded with no change in the information need."
+    },
+    {
+      "a": "What causes jet lag?",
+      "b": "Why do people get jet lag?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Cause and reason phrasings of one physiological question."
+    },
+    {
+      "a": "How do I check which process is using port 3000?",
+      "b": "Something is holding port 3000, how do I find out what it is?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Conversational framing of the exact same diagnostic command request."
+    },
+    {
+      "a": "What does the SOLID acronym stand for in OOP?",
+      "b": "Can you list what each letter of SOLID means in object oriented design?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Expanding an acronym is the same task whether asked as stands for or list letters."
+    },
+    {
+      "a": "How long should I boil eggs for hard boiled yolks?",
+      "b": "What is the boiling time to get hard boiled eggs?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Both ask for the same cooking duration with reworded surface form."
+    },
+    {
+      "a": "What is the difference between == and === in JavaScript?",
+      "b": "Explain how == differs from === in JavaScript",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Question versus imperative phrasing of one well defined language semantics question."
+    },
+    {
+      "a": "How do I flatten a nested list in Python?",
+      "b": "How do I turn a list of lists into one flat list in Python?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Flatten and turn into one flat list describe the identical operation."
+    },
+    {
+      "a": "What is a closure in JavaScript?",
+      "b": "Can you explain what JavaScript closures are?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Singular definition request restated as a plural explanation request."
+    },
+    {
+      "a": "How do I renew my US passport?",
+      "b": "What is the process for renewing a US passport?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Procedural question asked two ways with identical scope and answer."
+    },
+    {
+      "a": "How much water should an adult drink each day?",
+      "b": "What is the recommended daily water intake for adults?",
+      "shouldMatch": true,
+      "category": "paraphrase",
+      "note": "Colloquial and clinical phrasings of the same daily intake question."
+    },
+    {
+      "a": "How do I kill a process running on a port on macOS?",
+      "b": "Hi, could you please tell me how to kill a process on a port on macOS? Thanks!",
+      "shouldMatch": true,
+      "category": "politeness",
+      "note": "Greeting and thanks wrapper adds tokens but zero change to the information need."
+    },
+    {
+      "a": "Explain the difference between HTTP and HTTPS",
+      "b": "Hello! Would you mind explaining the difference between HTTP and HTTPS? Thank you.",
+      "shouldMatch": true,
+      "category": "politeness",
+      "note": "Formal hedging around an otherwise identical explanation request."
+    },
+    {
+      "a": "Give me a recipe for banana bread",
+      "b": "Hey, could you please give me a recipe for banana bread?",
+      "shouldMatch": true,
+      "category": "politeness",
+      "note": "Casual greeting plus please, with the same recipe request underneath."
+    },
+    {
+      "a": "What is the capital of Norway?",
+      "b": "Good morning, I was wondering what the capital of Norway is?",
+      "shouldMatch": true,
+      "category": "politeness",
+      "note": "Indirect polite framing of a single fact lookup."
+    },
+    {
+      "a": "How do I set up SSH keys for GitHub?",
+      "b": "Could you kindly walk me through setting up SSH keys for GitHub? Thanks a lot.",
+      "shouldMatch": true,
+      "category": "politeness",
+      "note": "Extra courtesy language does not change the setup steps required."
+    },
+    {
+      "a": "Convert 72 F to Celsius",
+      "b": "Please convert 72 F to Celsius, thank you.",
+      "shouldMatch": true,
+      "category": "politeness",
+      "note": "Politeness tokens around an exact numeric conversion that must still hit the cache."
+    },
+    {
+      "a": "How do I install numpy with pip?",
+      "b": "how do i instal numpy wiht pip",
+      "shouldMatch": true,
+      "category": "typo",
+      "note": "Misspellings and lost capitalization must not stop the cache from hitting."
+    },
+    {
+      "a": "What is the difference between var and let in JavaScript?",
+      "b": "whats teh diference betwen var and let in javascript",
+      "shouldMatch": true,
+      "category": "typo",
+      "note": "Several typos plus dropped punctuation over an unchanged question."
+    },
+    {
+      "a": "How long does it take to fly from London to New York?",
+      "b": "how long dose it take to fly form london to new york",
+      "shouldMatch": true,
+      "category": "typo",
+      "note": "Transposed letters in common words with the same travel duration need."
+    },
+    {
+      "a": "What are the symptoms of dehydration?",
+      "b": "wat r the symtoms of dehydration",
+      "shouldMatch": true,
+      "category": "typo",
+      "note": "Chat shorthand and misspelling of the key noun, identical information need."
+    },
+    {
+      "a": "How do I clear the npm cache?",
+      "b": "how do i clera the npm cahce",
+      "shouldMatch": true,
+      "category": "typo",
+      "note": "Two transposition typos in a short prompt where each token carries a lot of weight."
+    },
+    {
+      "a": "How do I make cold brew coffee at home?",
+      "b": "how do i mak cold brew coffe at home",
+      "shouldMatch": true,
+      "category": "typo",
+      "note": "Dropped trailing letters and no capitals, same recipe question."
+    },
+    {
+      "a": "python list reverse",
+      "b": "How do I reverse a list in Python?",
+      "shouldMatch": true,
+      "category": "verbosity",
+      "note": "Keyword style search query versus a full natural language question."
+    },
+    {
+      "a": "git undo last commit",
+      "b": "What is the command to undo the last commit I made in git?",
+      "shouldMatch": true,
+      "category": "verbosity",
+      "note": "Terse three word query expanded into a complete sentence with no new constraints."
+    },
+    {
+      "a": "docker remove all containers",
+      "b": "How can I remove all of my Docker containers at once?",
+      "shouldMatch": true,
+      "category": "verbosity",
+      "note": "Padding words like at once do not narrow the request in any way."
+    },
+    {
+      "a": "capital of Peru",
+      "b": "Can you tell me what the capital city of Peru is?",
+      "shouldMatch": true,
+      "category": "verbosity",
+      "note": "Fragment versus full question for the same single fact."
+    },
+    {
+      "a": "pandas drop column",
+      "b": "How do I drop a column from a pandas DataFrame?",
+      "shouldMatch": true,
+      "category": "verbosity",
+      "note": "Library plus verb plus noun shorthand matching a fully spelled out question."
+    },
+    {
+      "a": "375 f to c",
+      "b": "What is 375 degrees Fahrenheit in Celsius?",
+      "shouldMatch": true,
+      "category": "verbosity",
+      "note": "Abbreviated unit conversion with the same numbers and the same direction."
+    },
+    {
+      "a": "css flexbox center vertically",
+      "b": "How do I vertically center items using CSS flexbox?",
+      "shouldMatch": true,
+      "category": "verbosity",
+      "note": "Search style keywords versus prose, both wanting the same flexbox property."
+    },
+    {
+      "a": "In Python, how do I sort a dictionary by value?",
+      "b": "How do I sort a dictionary by value in Python?",
+      "shouldMatch": true,
+      "category": "word-order",
+      "note": "Leading versus trailing language qualifier with identical meaning."
+    },
+    {
+      "a": "What is the difference between a thread and a process?",
+      "b": "What is the difference between a process and a thread?",
+      "shouldMatch": true,
+      "category": "word-order",
+      "note": "Difference is symmetric here, unlike is A better than B, so this must still hit."
+    },
+    {
+      "a": "For a marathon, how many weeks of training do I need?",
+      "b": "How many weeks of training do I need for a marathon?",
+      "shouldMatch": true,
+      "category": "word-order",
+      "note": "Fronted prepositional phrase moved to the end with no semantic change."
+    },
+    {
+      "a": "Using Node, how do I read a file line by line?",
+      "b": "How do I read a file line by line using Node?",
+      "shouldMatch": true,
+      "category": "word-order",
+      "note": "Runtime qualifier repositioned, same file reading question."
+    },
+    {
+      "a": "What are the pros and cons of remote work?",
+      "b": "What are the cons and pros of remote work?",
+      "shouldMatch": true,
+      "category": "word-order",
+      "note": "Requesting both sides in either order asks for exactly the same content."
+    },
+    {
+      "a": "In Kotlin, what is the difference between val and var?",
+      "b": "What is the difference between val and var in Kotlin?",
+      "shouldMatch": true,
+      "category": "word-order",
+      "note": "Language qualifier moved across the sentence with identical intent."
+    }
+  ]
+}
