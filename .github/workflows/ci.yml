@@ -13,6 +13,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Every action below is pinned to a major that declares `using: node24`. Node 20 is deprecated
+    # on GitHub-hosted runners, and the previous majors (checkout@v4, setup-java@v4,
+    # setup-gradle@v4, upload-artifact@v4) still target it — they only run because the runner
+    # force-upgrades them. Do not lower these majors without checking `runs.using` first.
     steps:
       - uses: actions/checkout@v7
 
