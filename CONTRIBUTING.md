@@ -21,7 +21,7 @@ Thanks for your interest in contributing.
 The guards are the reason this library exists, so they have a stricter bar than the rest of the code.
 
 - **Every guard change must be measured against the corpus**, not argued for. Run
-  `./gradlew :kmemo-core:test --tests '*NearMissCorpusTest*'` and include the before/after numbers in
+  `./gradlew :kmemo-core:test --tests '*CorpusTest*'` and include the before/after numbers in
   the pull request.
 - **A guard may never reject a genuine paraphrase.** The corpus carries 38 pairs that must stay
   cacheable precisely so that a guard which rejects everything cannot look perfect. That count is

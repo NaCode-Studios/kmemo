@@ -295,7 +295,7 @@ non-English vocabularies.
 ./gradlew apiCheck       # check the tracked public API in *.api
 ./gradlew apiDump        # regenerate *.api after an intentional public-API change
 
-./gradlew :kmemo-core:test --tests '*NearMissCorpusTest*'   # the corpus report above
+./gradlew :kmemo-core:test --tests '*CorpusTest*'   # the corpus report above
 ```
 
 The build runs with explicit API mode and `allWarningsAsErrors`. Tests need no external services —
