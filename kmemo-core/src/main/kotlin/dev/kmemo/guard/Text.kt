@@ -23,11 +23,17 @@ internal object Text {
      *
      * So a marker only counts as evidence when everything around it matches.
      */
-    fun differsOnlyBy(a: String, b: String, ignored: Set<String>, stopwords: Set<String>): Boolean {
+    fun differsOnlyBy(
+        a: String,
+        b: String,
+        ignored: Set<String>,
+        stopwords: Set<String>,
+        tolerance: Int = 0,
+    ): Boolean {
         val left = contentTokens(a, stopwords).filterNot { it in ignored }
         val right = contentTokens(b, stopwords).filterNot { it in ignored }
         if (left.size != right.size) return false
-        return left.indices.all { isSameWord(left[it], right[it]) }
+        return left.indices.count { !isSameWord(left[it], right[it]) } <= tolerance
     }
 
     /** Shortest token allowed to fuzzy-match: below five, one edit separates `cat` from `cut`. */

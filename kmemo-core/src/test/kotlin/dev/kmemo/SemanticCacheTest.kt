@@ -250,6 +250,14 @@ class SemanticCacheTest {
         assertEquals(1, calls)
         assertTrue(answers.all { it == "Paris" })
         assertEquals(1, cache.size())
+
+        // Coalescing must not distort the numbers it exists to improve: one lookup per call, and
+        // never more misses than there were calls.
+        val stats = cache.stats()
+        assertEquals(20, stats.lookups)
+        assertEquals(19, stats.hits)
+        assertEquals(1, stats.misses)
+        assertEquals(1, stats.writes)
     }
 
     @Test

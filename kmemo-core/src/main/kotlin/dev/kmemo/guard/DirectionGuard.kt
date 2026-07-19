@@ -31,13 +31,13 @@ public class DirectionGuard(
 
     override fun evaluate(query: String, candidate: String): GuardVerdict {
         if (!hasDirectionalCue(query) && !hasDirectionalCue(candidate)) return GuardVerdict.Accept
-        if (isSymmetricComparison(query) || isSymmetricComparison(candidate)) return GuardVerdict.Accept
 
         val queryTokens = Text.contentTokens(query, stopwords)
         val candidateTokens = Text.contentTokens(candidate, stopwords)
         if (queryTokens == candidateTokens) return GuardVerdict.Accept
         if (queryTokens.toSet() != candidateTokens.toSet()) return GuardVerdict.Accept
         if (isRotationOf(queryTokens, candidateTokens)) return GuardVerdict.Accept
+        if (isSymmetricSelection(query, queryTokens, candidateTokens)) return GuardVerdict.Accept
 
         return GuardVerdict.Reject(
             "same terms in reversed order around a comparison or conversion: " +
@@ -48,20 +48,37 @@ public class DirectionGuard(
     private fun hasDirectionalCue(text: String): Boolean = Text.tokens(text).any { it in cues }
 
     /**
-     * Whether the prompt asks the reader to *choose between* two things rather than to judge one
-     * against the other.
+     * Whether the two swapped terms are *listed as alternatives* rather than ranked against each
+     * other.
      *
-     * "Is Postgres better than MySQL?" is a yes/no question, and reversing the operands asks the
-     * opposite. "Which is better, Redis or Memcached?" and "Vim vs Emacs for large files" ask for a
-     * winner, and the order the candidates are listed in changes nothing — those are the same
-     * question and must stay a hit.
+     * "Is Postgres better than MySQL?" is a yes/no question and reversing the operands asks the
+     * opposite. "Which is better, Redis or Memcached?" asks for a winner, and the order the
+     * candidates are listed in changes nothing.
      *
-     * `than` is what marks the asymmetric form, so a comparison without it is a selection.
+     * The coordinator has to sit **between the two swapped terms**. Merely finding an `or` anywhere
+     * in the prompt disables the guard on sentences where the `or` has nothing to do with the swap:
+     * "convert 100 euros to dollars or pounds" against "convert 100 dollars to euros or pounds" is
+     * a reversed conversion with an unrelated alternative tacked on, and accepting it serves the
+     * wrong exchange rate.
      */
-    private fun isSymmetricComparison(text: String): Boolean {
+    private fun isSymmetricSelection(
+        text: String,
+        queryTokens: List<String>,
+        candidateTokens: List<String>,
+    ): Boolean {
         val tokens = Text.tokens(text)
         if ("than" in tokens) return false
-        return tokens.any { it in SYMMETRIC_COORDINATORS }
+
+        val firstDifference = queryTokens.indices.firstOrNull { queryTokens[it] != candidateTokens[it] }
+            ?: return false
+        val left = tokens.indexOf(queryTokens[firstDifference])
+        val right = tokens.indexOf(candidateTokens[firstDifference])
+        if (left < 0 || right < 0) return false
+
+        val from = minOf(left, right)
+        val to = maxOf(left, right)
+        if (to - from < 2) return false
+        return tokens.subList(from + 1, to).any { it in SYMMETRIC_COORDINATORS }
     }
 
     /**
@@ -74,15 +91,15 @@ public class DirectionGuard(
      * tokens, so the other cannot be its counterpart, and "In Rails, how do I migrate" is the same
      * question with the phrase moved.
      */
-    private companion object {
-        /** Words that list alternatives rather than rank one against another. */
-        private val SYMMETRIC_COORDINATORS = setOf("or", "vs", "versus", "between")
-    }
-
     private fun isRotationOf(a: List<String>, b: List<String>): Boolean {
         if (a.size != b.size) return false
         if (a.size < 2) return false
         if (a.size == 2) return a.any { it in cues }
         return (a + a).windowed(b.size).any { it == b }
+    }
+
+    private companion object {
+        /** Words that list alternatives rather than rank one against another. */
+        private val SYMMETRIC_COORDINATORS = setOf("or", "vs", "versus", "between")
     }
 }

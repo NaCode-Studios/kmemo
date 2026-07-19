@@ -356,6 +356,94 @@ class RegressionTest {
         assertEquals(1, store.search("default", floatArrayOf(1.0f, 0.0f, 0.0f), limit = 5).size)
     }
 
+    // --- fourth review ------------------------------------------------------------------------
+
+    @Test
+    fun `a short acronym does not disable the entity guard`() {
+        // Matching on initials alone, "us" is "spelled out by" *use software* — which silently
+        // turned off the guard for US/UK, OS/DB, IT/HR: most acronym traffic a cache ever sees.
+        assertTrue(chainRejects("Do I owe tax in the US if I use software abroad?", "Do I owe tax in the UK if I use software abroad?"))
+        assertTrue(chainRejects("Which OS should I run on servers?", "Which DB should I run on servers?"))
+        assertTrue(chainRejects("How do I hide PI in a python interpreter dump?", "How do I hide ID in a python interpreter dump?"))
+    }
+
+    @Test
+    fun `a real acronym still matches its expansion`() {
+        assertTrue(
+            !chainRejects(
+                "What does GDPR require when a user asks for their data to be erased?",
+                "What does the General Data Protection Regulation require when a user asks for their data to be erased?",
+            ),
+        )
+    }
+
+    @Test
+    fun `an unrelated or does not disable the direction guard`() {
+        // One "or" anywhere used to switch the whole guard off, including on conversions where the
+        // alternative has nothing to do with the operands being swapped.
+        assertTrue(chainRejects("convert 100 euros to dollars or pounds", "convert 100 dollars to euros or pounds"))
+        assertTrue(
+            chainRejects(
+                "should i migrate from mysql to postgres or stay put",
+                "should i migrate from postgres to mysql or stay put",
+            ),
+        )
+    }
+
+    @Test
+    fun `listing two alternatives is still symmetric`() {
+        assertTrue(
+            !chainRejects(
+                "Which is better for session storage, Redis or Memcached?",
+                "Which is better for session storage, Memcached or Redis?",
+            ),
+        )
+    }
+
+    @Test
+    fun `won and haven are ordinary words, not contraction stems`() {
+        assertTrue(chainRejects("who won the nobel prize in physics", "who won the nobel prize in chemistry"))
+        assertTrue(chainRejects("is norway a tax haven for crypto", "is panama a tax haven for crypto"))
+    }
+
+    @Test
+    fun `a negation survives one reworded term`() {
+        // All-or-nothing lost the pairs that matter most: a single synonym flipped these from
+        // rejected to served.
+        assertTrue(
+            chainRejects(
+                "foods you should eat while pregnant",
+                "foods you should not eat during pregnancy",
+            ),
+        )
+        assertTrue(
+            chainRejects(
+                "medications that are safe to take with alcohol",
+                "medications that are not safe to consume with alcohol",
+            ),
+        )
+    }
+
+    @Test
+    fun `an independently worded pair is still not a negation difference`() {
+        assertTrue(
+            !chainRejects(
+                "Why can't I connect to my company VPN from home?",
+                "Why is my connection to the company VPN failing when I am at home?",
+            ),
+        )
+    }
+
+    @Test
+    fun `asking for more on top of the same thing is not a different request`() {
+        assertTrue(
+            !chainRejects(
+                "give me an overview and an example of dependency injection",
+                "give me an example of dependency injection",
+            ),
+        )
+    }
+
     private fun unit(similarity: Double): FloatArray =
         floatArrayOf(similarity.toFloat(), sqrt(1.0 - similarity * similarity).toFloat())
 

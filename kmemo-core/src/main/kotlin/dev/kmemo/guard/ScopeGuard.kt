@@ -29,6 +29,11 @@ public class ScopeGuard(
         val candidateMarkers = markersIn(candidate)
         if (queryMarkers == candidateMarkers) return GuardVerdict.Accept
         if (queryMarkers.isEmpty() || candidateMarkers.isEmpty()) return GuardVerdict.Accept
+        // A superset is an addition too: asking for "an overview and an example" still wants the
+        // example. Only a genuine swap — each side naming a shape the other does not — is evidence.
+        if (queryMarkers.containsAll(candidateMarkers) || candidateMarkers.containsAll(queryMarkers)) {
+            return GuardVerdict.Accept
+        }
 
         return GuardVerdict.Reject(
             "the answers asked for differ in format or depth: $queryMarkers vs $candidateMarkers",

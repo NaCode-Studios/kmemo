@@ -242,6 +242,8 @@ public final class dev/kmemo/guard/DirectionGuard : dev/kmemo/guard/MatchGuard {
 
 public final class dev/kmemo/guard/EntityGuard : dev/kmemo/guard/MatchGuard {
 	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
 	public fun getName ()Ljava/lang/String;
 }

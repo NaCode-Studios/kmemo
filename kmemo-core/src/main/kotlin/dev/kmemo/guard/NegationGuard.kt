@@ -25,7 +25,14 @@ public class NegationGuard(
         // A negation only reverses the answer when it is the difference. Two prompts worded
         // differently throughout — "why can't I connect to the VPN" and "why is my connection to
         // the VPN failing" — happen to differ in negation and mean the same thing.
-        if (!Text.differsOnlyBy(query, candidate, markers, stopwords)) return GuardVerdict.Accept
+        // One reworded term is tolerated, because an all-or-nothing rule loses the pairs that
+        // matter most: "foods you should eat while pregnant" and "foods you should not eat during
+        // pregnancy" differ by a negation and a single synonym, and serving one for the other is
+        // the kind of wrong answer this library exists to prevent. Two or more differences mean the
+        // prompts were written independently and the negation is incidental.
+        if (!Text.differsOnlyBy(query, candidate, markers, stopwords, tolerance = 1)) {
+            return GuardVerdict.Accept
+        }
 
         val negated = if (queryNegated) "query" else "cached prompt"
         return GuardVerdict.Reject("otherwise identical, but only the $negated is negated")

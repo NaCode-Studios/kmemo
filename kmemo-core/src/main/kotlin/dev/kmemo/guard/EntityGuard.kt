@@ -23,7 +23,9 @@ package dev.kmemo.guard
  * **Pronouns and initials do not count.** English capitalizes `I`, which would otherwise make every
  * first-person question look like it named something.
  */
-public class EntityGuard : MatchGuard {
+public class EntityGuard(
+    private val stopwords: Set<String> = Vocabulary.STOPWORDS,
+) : MatchGuard {
 
     override val name: String get() = "entity"
 
@@ -56,17 +58,31 @@ public class EntityGuard : MatchGuard {
         return entities.filterNotTo(LinkedHashSet()) { isSpelledOutBy(it, tokens) }
     }
 
+    /**
+     * Whether some run of consecutive words has exactly these initials.
+     *
+     * Two constraints keep the test from matching noise, and both are load-bearing. Initials alone
+     * are extremely weak evidence: at two letters, `US` is "spelled out by" *use software* and `OS`
+     * by *on servers*, so every `US`/`UK` and `OS`/`DB` swap would be waved through — and short
+     * acronyms are most of what a cache actually sees. Three letters is the shortest length where a
+     * chance match stops being routine.
+     *
+     * The matched words must also all be content words. Otherwise `API` finds *a programming
+     * interface* and the guard disables itself on a stray article.
+     */
     private fun isSpelledOutBy(acronym: String, tokens: List<String>): Boolean {
         if (acronym.length !in MIN_ACRONYM..MAX_ACRONYM) return false
         if (tokens.size < acronym.length) return false
         for (start in 0..tokens.size - acronym.length) {
-            if (acronym.indices.all { tokens[start + it].firstOrNull() == acronym[it] }) return true
+            val run = tokens.subList(start, start + acronym.length)
+            if (run.any { it in stopwords }) continue
+            if (acronym.indices.all { run[it].firstOrNull() == acronym[it] }) return true
         }
         return false
     }
 
     private companion object {
-        private const val MIN_ACRONYM = 2
+        private const val MIN_ACRONYM = 3
         private const val MAX_ACRONYM = 6
     }
 }

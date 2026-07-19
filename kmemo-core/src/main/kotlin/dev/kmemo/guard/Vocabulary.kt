@@ -55,8 +55,11 @@ public object Vocabulary {
         // What a tokenizer that splits on apostrophes leaves behind: "doesn't" becomes "doesn" and
         // "t". Without these, the stem counts as a content word and every contraction looks like a
         // prompt with an extra term in it.
-        "doesn", "don", "isn", "aren", "wasn", "weren", "didn", "won", "couldn", "shouldn",
-        "wouldn", "hasn", "haven", "hadn", "ain", "shan", "mustn", "needn",
+        // `won`, `haven` and `don` are deliberately absent: they are the past tense of *win*, a
+        // *tax haven*, and a *don*, and stopwording them made "who won the nobel prize in physics"
+        // match "…in chemistry".
+        "doesn", "isn", "aren", "wasn", "weren", "didn", "couldn", "shouldn", "wouldn", "hasn",
+        "hadn", "shan", "mustn", "needn",
         // politeness and conversational filler
         "please", "thanks", "thank", "thankyou", "hi", "hello", "hey", "kindly", "sorry", "ok",
         "okay", "sure", "well", "actually", "basically", "really", "maybe",

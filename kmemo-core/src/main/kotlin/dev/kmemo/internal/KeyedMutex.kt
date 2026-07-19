@@ -13,6 +13,10 @@ import kotlinx.coroutines.withContext
  * leak and creates a worse problem — unrelated prompts collide and serialize behind each other,
  * which for work measured in seconds of model latency is a throughput cliff.
  *
+ * Not reentrant, because the underlying [Mutex] is not: taking the same key twice from one
+ * coroutine deadlocks permanently, with no timeout to rescue it. In practice that means the
+ * `compute` block of a coalesced call must not call back into the cache for the same prompt.
+ *
  * So entries are reference-counted and removed when the last waiter leaves. The bookkeeping runs
  * under [NonCancellable] because it lives in a `finally`, and a suspending cleanup in a cancelled
  * coroutine would otherwise be skipped — leaking the very entry it exists to remove.
