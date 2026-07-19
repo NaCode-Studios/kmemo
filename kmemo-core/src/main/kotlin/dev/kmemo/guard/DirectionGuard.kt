@@ -55,11 +55,14 @@ public class DirectionGuard(
      * opposite. "Which is better, Redis or Memcached?" asks for a winner, and the order the
      * candidates are listed in changes nothing.
      *
-     * The coordinator has to sit **between the two swapped terms**. Merely finding an `or` anywhere
-     * in the prompt disables the guard on sentences where the `or` has nothing to do with the swap:
-     * "convert 100 euros to dollars or pounds" against "convert 100 dollars to euros or pounds" is
-     * a reversed conversion with an unrelated alternative tacked on, and accepting it serves the
-     * wrong exchange rate.
+     * The coordinator has to sit **directly between the two swapped terms** — the literal phrase
+     * "redis or memcached", "python vs ruby". Merely finding an `or` somewhere in the prompt
+     * disables the guard where the `or` has nothing to do with the swap: "convert dollars to euros
+     * or pounds" against "convert euros to dollars or pounds" is a reversed conversion with an
+     * unrelated alternative attached, and accepting it serves the wrong rate. Requiring adjacency
+     * also sidesteps a subtler trap — the swapped terms come from a deduplicated token list, so
+     * *searching* the raw text for them by value can land on the wrong occurrence when a word
+     * repeats.
      */
     private fun isSymmetricSelection(
         text: String,
@@ -71,14 +74,15 @@ public class DirectionGuard(
 
         val firstDifference = queryTokens.indices.firstOrNull { queryTokens[it] != candidateTokens[it] }
             ?: return false
-        val left = tokens.indexOf(queryTokens[firstDifference])
-        val right = tokens.indexOf(candidateTokens[firstDifference])
-        if (left < 0 || right < 0) return false
+        val x = queryTokens[firstDifference]
+        val y = candidateTokens[firstDifference]
 
-        val from = minOf(left, right)
-        val to = maxOf(left, right)
-        if (to - from < 2) return false
-        return tokens.subList(from + 1, to).any { it in SYMMETRIC_COORDINATORS }
+        // "x <coordinator> y" or "y <coordinator> x", anywhere, in either order.
+        for (i in 0..tokens.size - 3) {
+            val ends = setOf(tokens[i], tokens[i + 2])
+            if (ends == setOf(x, y) && tokens[i + 1] in SYMMETRIC_COORDINATORS) return true
+        }
+        return false
     }
 
     /**

@@ -444,6 +444,23 @@ class RegressionTest {
         )
     }
 
+    // --- fifth review -------------------------------------------------------------------------
+
+    @Test
+    fun `a reversed conversion is caught however the operands are found`() {
+        // isSymmetricSelection located the swapped terms with indexOf on a deduplicated token list,
+        // so an unrelated "or" elsewhere — or a repeated word — could place a coordinator between
+        // the wrong occurrences and wave a real swap through.
+        assertTrue(chainRejects("change 50 usd to eur or gbp", "change 50 eur to usd or gbp"))
+        assertTrue(chainRejects("convert dollars to euros or pounds", "convert euros to dollars or pounds"))
+    }
+
+    @Test
+    fun `listing two alternatives with a cue is still symmetric`() {
+        assertTrue(!chainRejects("which is better redis or memcached for caching", "which is better memcached or redis for caching"))
+        assertTrue(!chainRejects("python vs ruby for scripting", "ruby vs python for scripting"))
+    }
+
     private fun unit(similarity: Double): FloatArray =
         floatArrayOf(similarity.toFloat(), sqrt(1.0 - similarity * similarity).toFloat())
 

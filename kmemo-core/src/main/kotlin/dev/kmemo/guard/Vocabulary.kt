@@ -290,7 +290,7 @@ public object Vocabulary {
         "safer", "stronger", "weaker", "bigger", "smaller", "larger", "higher", "lower",
         "superior", "inferior", "outperforms", "beats", "preferable", "prefer",
         // conversions and moves, where the source and the target are not interchangeable
-        "convert", "converts", "converting", "conversion", "exchange", "translate", "migrate",
+        "convert", "converts", "converting", "conversion", "exchange", "change", "translate", "migrate",
         "migrating", "migration", "port", "porting", "switch", "switching", "move", "moving",
         "transfer", "upgrade", "downgrade", "rename", "map",
     )
