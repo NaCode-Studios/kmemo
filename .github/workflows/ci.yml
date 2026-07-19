@@ -1,21 +1,24 @@
-name: build
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     # Every action below is pinned to a major that declares `using: node24`. Node 20 is deprecated
-    # on GitHub-hosted runners, and the previous majors (checkout@v4, setup-java@v4,
-    # setup-gradle@v4, upload-artifact@v4) still target it — they only run because the runner
+    # on GitHub-hosted runners, and the previous majors (checkout@v4/v5, setup-java@v4,
+    # setup-gradle@v4/v5, upload-artifact@v4) still target it — they only run because the runner
     # force-upgrades them. Do not lower these majors without checking `runs.using` first.
     steps:
       - uses: actions/checkout@v7
@@ -23,23 +26,26 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
+          java-version: "17"
           distribution: temurin
-          java-version: '17'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Build and test
-        run: ./gradlew build --stacktrace
+      - name: Build, test and verify public API
+        run: ./gradlew build --no-daemon --stacktrace
 
-      # The corpus report is the project's headline claim. Keeping it in the build log means the
+      # The corpus report is this project's headline claim. Keeping it in the build log means the
       # numbers in the README can always be checked against a real run.
       - name: Near-miss corpus report
-        run: ./gradlew :kmemo-core:test --tests '*NearMissCorpusTest*' --rerun-tasks
+        run: ./gradlew :kmemo-core:test --tests '*NearMissCorpusTest*' --rerun-tasks --no-daemon
 
-      - name: Upload test report
+      - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-report
-          path: kmemo-core/build/reports/tests/test
+          name: test-reports
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
+          retention-days: 7

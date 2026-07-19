@@ -1,0 +1,390 @@
+public final class dev/kmemo/CacheEntry {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[FLjava/time/Instant;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[FLjava/time/Instant;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCreatedAt ()Ljava/time/Instant;
+	public final fun getDimensions ()I
+	public final fun getEmbedding ()[F
+	public final fun getId ()Ljava/lang/String;
+	public final fun getMetadata ()Ljava/util/Map;
+	public final fun getPrompt ()Ljava/lang/String;
+	public final fun getResponse ()Ljava/lang/String;
+	public final fun getScope ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+	public final fun withResponse (Ljava/lang/String;)Ldev/kmemo/CacheEntry;
+}
+
+public abstract interface class dev/kmemo/CacheLookup {
+}
+
+public final class dev/kmemo/CacheLookup$Hit : dev/kmemo/CacheLookup {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;DLjava/lang/String;JLjava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getAge-UwyO8pc ()J
+	public final fun getEntryId ()Ljava/lang/String;
+	public final fun getMatchedPrompt ()Ljava/lang/String;
+	public final fun getMetadata ()Ljava/util/Map;
+	public final fun getResponse ()Ljava/lang/String;
+	public final fun getSimilarity ()D
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/CacheLookup$Miss : dev/kmemo/CacheLookup {
+	public fun <init> (Ldev/kmemo/MissReason;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getBestPrompt ()Ljava/lang/String;
+	public final fun getBestSimilarity ()Ljava/lang/Double;
+	public final fun getDetail ()Ljava/lang/String;
+	public final fun getReason ()Ldev/kmemo/MissReason;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/CacheStats {
+	public fun <init> (JJJJJJJ)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun component4 ()J
+	public final fun component5 ()J
+	public final fun component6 ()J
+	public final fun component7 ()J
+	public final fun copy (JJJJJJJ)Ldev/kmemo/CacheStats;
+	public static synthetic fun copy$default (Ldev/kmemo/CacheStats;JJJJJJJILjava/lang/Object;)Ldev/kmemo/CacheStats;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBelowThreshold ()J
+	public final fun getGuardRejectionRate ()D
+	public final fun getGuardRejections ()J
+	public final fun getHitRate ()D
+	public final fun getHits ()J
+	public final fun getLookups ()J
+	public final fun getMisses ()J
+	public final fun getVerifierRejections ()J
+	public final fun getWrites ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/kmemo/CacheStore {
+	public abstract fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun clear$default (Ldev/kmemo/CacheStore;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public abstract fun put (Ldev/kmemo/CacheEntry;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun remove (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun search (Ljava/lang/String;[FILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun size (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun size$default (Ldev/kmemo/CacheStore;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public fun touch (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/CacheStore$DefaultImpls {
+	public static synthetic fun clear$default (Ldev/kmemo/CacheStore;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun size$default (Ldev/kmemo/CacheStore;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static fun touch (Ldev/kmemo/CacheStore;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class dev/kmemo/Embedder {
+	public abstract fun embed (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun embedAll (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/Embedder$DefaultImpls {
+	public static fun embedAll (Ldev/kmemo/Embedder;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/MissReason : java/lang/Enum {
+	public static final field BELOW_THRESHOLD Ldev/kmemo/MissReason;
+	public static final field EMPTY_SCOPE Ldev/kmemo/MissReason;
+	public static final field REJECTED_BY_GUARD Ldev/kmemo/MissReason;
+	public static final field REJECTED_BY_VERIFIER Ldev/kmemo/MissReason;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/kmemo/MissReason;
+	public static fun values ()[Ldev/kmemo/MissReason;
+}
+
+public final class dev/kmemo/ScoredEntry {
+	public fun <init> (Ldev/kmemo/CacheEntry;D)V
+	public final fun getEntry ()Ldev/kmemo/CacheEntry;
+	public final fun getSimilarity ()D
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/SemanticCache {
+	public static final field Companion Ldev/kmemo/SemanticCache$Companion;
+	public static final field DEFAULT_CANDIDATES I
+	public static final field DEFAULT_SCOPE Ljava/lang/String;
+	public static final field DEFAULT_THRESHOLD D
+	public fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;ILjava/time/Clock;)V
+	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;ILjava/time/Clock;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun clear$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun get (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun get$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun getOrPut (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun getOrPut$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun invalidate (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun lookup (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun lookup$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun put (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun put$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun size (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun size$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun stats ()Ldev/kmemo/CacheStats;
+}
+
+public final class dev/kmemo/SemanticCache$Companion {
+}
+
+public final class dev/kmemo/Vectors {
+	public static final field INSTANCE Ldev/kmemo/Vectors;
+	public final fun cosineSimilarity ([F[F)D
+	public final fun dot ([F[F)D
+	public final fun isNormalized ([FD)Z
+	public static synthetic fun isNormalized$default (Ldev/kmemo/Vectors;[FDILjava/lang/Object;)Z
+	public final fun magnitude ([F)D
+	public final fun normalize ([F)[F
+}
+
+public abstract interface class dev/kmemo/Verifier {
+	public abstract fun verify (Ljava/lang/String;Ljava/lang/String;DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/calibration/CalibrationReport {
+	public fun <init> (IIILjava/util/List;Ldev/kmemo/calibration/ThresholdOutcome;Ldev/kmemo/calibration/ThresholdOutcome;Ldev/kmemo/calibration/ThresholdOutcome;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ldev/kmemo/calibration/ThresholdOutcome;
+	public final fun component6 ()Ldev/kmemo/calibration/ThresholdOutcome;
+	public final fun component7 ()Ldev/kmemo/calibration/ThresholdOutcome;
+	public final fun copy (IIILjava/util/List;Ldev/kmemo/calibration/ThresholdOutcome;Ldev/kmemo/calibration/ThresholdOutcome;Ldev/kmemo/calibration/ThresholdOutcome;)Ldev/kmemo/calibration/CalibrationReport;
+	public static synthetic fun copy$default (Ldev/kmemo/calibration/CalibrationReport;IIILjava/util/List;Ldev/kmemo/calibration/ThresholdOutcome;Ldev/kmemo/calibration/ThresholdOutcome;Ldev/kmemo/calibration/ThresholdOutcome;ILjava/lang/Object;)Ldev/kmemo/calibration/CalibrationReport;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBestF1 ()Ldev/kmemo/calibration/ThresholdOutcome;
+	public final fun getGuardVetoes ()I
+	public final fun getMatchingPairs ()I
+	public final fun getOutcomes ()Ljava/util/List;
+	public final fun getPairCount ()I
+	public final fun getRecommended ()Ldev/kmemo/calibration/ThresholdOutcome;
+	public final fun getSafest ()Ldev/kmemo/calibration/ThresholdOutcome;
+	public fun hashCode ()I
+	public final fun summary ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/calibration/PromptPair {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)Ldev/kmemo/calibration/PromptPair;
+	public static synthetic fun copy$default (Ldev/kmemo/calibration/PromptPair;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;ILjava/lang/Object;)Ldev/kmemo/calibration/PromptPair;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getA ()Ljava/lang/String;
+	public final fun getB ()Ljava/lang/String;
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getShouldMatch ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/calibration/ThresholdCalibrator {
+	public static final field Companion Ldev/kmemo/calibration/ThresholdCalibrator$Companion;
+	public static final field DEFAULT_STEP D
+	public fun <init> (Ldev/kmemo/Embedder;Ljava/util/List;)V
+	public synthetic fun <init> (Ldev/kmemo/Embedder;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun calibrate (Ljava/util/List;Lkotlin/ranges/ClosedFloatingPointRange;DDLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun calibrate$default (Ldev/kmemo/calibration/ThresholdCalibrator;Ljava/util/List;Lkotlin/ranges/ClosedFloatingPointRange;DDLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/calibration/ThresholdCalibrator$Companion {
+	public final fun getDEFAULT_RANGE ()Lkotlin/ranges/ClosedFloatingPointRange;
+}
+
+public final class dev/kmemo/calibration/ThresholdOutcome {
+	public fun <init> (DIIII)V
+	public final fun component1 ()D
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()I
+	public final fun copy (DIIII)Ldev/kmemo/calibration/ThresholdOutcome;
+	public static synthetic fun copy$default (Ldev/kmemo/calibration/ThresholdOutcome;DIIIIILjava/lang/Object;)Ldev/kmemo/calibration/ThresholdOutcome;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getF1 ()D
+	public final fun getFalseHitRate ()D
+	public final fun getFalseNegatives ()I
+	public final fun getFalsePositives ()I
+	public final fun getPrecision ()D
+	public final fun getRecall ()D
+	public final fun getThreshold ()D
+	public final fun getTrueNegatives ()I
+	public final fun getTruePositives ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/AntonymGuard : dev/kmemo/guard/MatchGuard {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/DirectionGuard : dev/kmemo/guard/MatchGuard {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/EntityGuard : dev/kmemo/guard/MatchGuard {
+	public fun <init> ()V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public abstract interface class dev/kmemo/guard/GuardVerdict {
+}
+
+public final class dev/kmemo/guard/GuardVerdict$Accept : dev/kmemo/guard/GuardVerdict {
+	public static final field INSTANCE Ldev/kmemo/guard/GuardVerdict$Accept;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/GuardVerdict$Reject : dev/kmemo/guard/GuardVerdict {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict$Reject;
+	public static synthetic fun copy$default (Ldev/kmemo/guard/GuardVerdict$Reject;Ljava/lang/String;ILjava/lang/Object;)Ldev/kmemo/guard/GuardVerdict$Reject;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/LengthRatioGuard : dev/kmemo/guard/MatchGuard {
+	public static final field Companion Ldev/kmemo/guard/LengthRatioGuard$Companion;
+	public static final field DEFAULT_MAX_RATIO D
+	public fun <init> ()V
+	public fun <init> (D)V
+	public synthetic fun <init> (DILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/LengthRatioGuard$Companion {
+}
+
+public final class dev/kmemo/guard/LexicalDivergenceGuard : dev/kmemo/guard/MatchGuard {
+	public static final field Companion Ldev/kmemo/guard/LexicalDivergenceGuard$Companion;
+	public static final field DEFAULT_MIN_OVERLAP D
+	public static final field DEFAULT_MIN_TOKENS I
+	public fun <init> ()V
+	public fun <init> (DILjava/util/Set;)V
+	public synthetic fun <init> (DILjava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/LexicalDivergenceGuard$Companion {
+}
+
+public abstract interface class dev/kmemo/guard/MatchGuard {
+	public abstract fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public abstract fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/MatchGuards {
+	public static final field INSTANCE Ldev/kmemo/guard/MatchGuards;
+	public final fun none ()Ljava/util/List;
+	public final fun standard ()Ljava/util/List;
+	public final fun strict ()Ljava/util/List;
+}
+
+public final class dev/kmemo/guard/NegationGuard : dev/kmemo/guard/MatchGuard {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/NumericGuard : dev/kmemo/guard/MatchGuard {
+	public fun <init> ()V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/ScopeGuard : dev/kmemo/guard/MatchGuard {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/TemporalGuard : dev/kmemo/guard/MatchGuard {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/UnitGuard : dev/kmemo/guard/MatchGuard {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/Vocabulary {
+	public static final field INSTANCE Ldev/kmemo/guard/Vocabulary;
+	public final fun getANTONYMS ()Ljava/util/Set;
+	public final fun getDIRECTIONAL_CUES ()Ljava/util/Set;
+	public final fun getNEGATION_MARKERS ()Ljava/util/Set;
+	public final fun getSCOPE_MARKERS ()Ljava/util/Set;
+	public final fun getSTOPWORDS ()Ljava/util/Set;
+	public final fun getTEMPORAL_MARKERS ()Ljava/util/Set;
+	public final fun getUNITS ()Ljava/util/Map;
+}
+
+public final class dev/kmemo/store/InMemoryStore : dev/kmemo/CacheStore {
+	public static final field Companion Ldev/kmemo/store/InMemoryStore$Companion;
+	public static final field DEFAULT_MAX_ENTRIES I
+	public synthetic fun <init> (ILkotlin/time/Duration;Ljava/time/Clock;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (ILkotlin/time/Duration;Ljava/time/Clock;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun purgeExpired (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun put (Ldev/kmemo/CacheEntry;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun remove (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun search (Ljava/lang/String;[FILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun size (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun stats (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun touch (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/store/InMemoryStore$Companion {
+}
+
+public final class dev/kmemo/store/InMemoryStoreStats {
+	public fun <init> (IJJ)V
+	public final fun component1 ()I
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun copy (IJJ)Ldev/kmemo/store/InMemoryStoreStats;
+	public static synthetic fun copy$default (Ldev/kmemo/store/InMemoryStoreStats;IJJILjava/lang/Object;)Ldev/kmemo/store/InMemoryStoreStats;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEvictions ()J
+	public final fun getExpirations ()J
+	public final fun getSize ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+

@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Aligned with the NaCode Studios library conventions: coordinates are `io.github.nacode-studios`,
+  the package is `dev.kmemo`, and the build tracks its public API with
+  binary-compatibility-validator (`./gradlew apiCheck`).
+
 ## [0.1.0]
 
 First release. Core semantic cache, provider-agnostic, one transitive dependency.

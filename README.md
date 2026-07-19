@@ -1,94 +1,90 @@
 # kmemo
 
-**Semantic cache for LLM calls on Kotlin/JVM — that refuses to serve you the wrong answer.**
+**A semantic cache for LLM calls on Kotlin/JVM — that refuses to serve you the wrong answer.**
 
-[![build](https://github.com/NaCode-Studios/kmemo/actions/workflows/ci.yml/badge.svg)](https://github.com/NaCode-Studios/kmemo/actions/workflows/ci.yml)
-[![license](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![CI](https://github.com/NaCode-Studios/kmemo/actions/workflows/ci.yml/badge.svg)](https://github.com/NaCode-Studios/kmemo/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.nacode-studios/kmemo-core?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.nacode-studios/kmemo-core)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF.svg?logo=kotlin)](https://kotlinlang.org)
 
 An exact-match cache misses "how do I reverse a list in Python" when it has already answered "python
 list reverse". A semantic cache does not: it embeds the prompt, finds the closest one it has seen,
-and replays that answer instead of calling the model. Fewer API calls, lower latency, same answers.
-
-Except for the part where it hands back the wrong one.
-
----
-
-## The problem this library is actually about
+and replays that answer instead of calling the model. Fewer API calls, lower latency, same answers —
+except for the part where it hands back the wrong one.
 
 ```
 "Convert 100 USD to EUR"
 "Convert 250 USD to EUR"      cosine similarity: ~0.99
 ```
 
-Every mainstream embedding model scores that pair around 0.99. The sentences are near-identical and
-no embedding model was trained to treat *magnitude* as meaning. There is no threshold that accepts
-genuine paraphrases and rejects that pair, because on the similarity axis **the near miss is closer
-than most paraphrases are**.
-
-So a cache built on a threshold alone will tell someone that 250 dollars is 92 euros. And it will do
-it quickly, with no error, no exception, and nothing in the logs. The same failure hides in:
-
-| Cached prompt | Incoming prompt | Similarity says |
-|---|---|---|
-| what's the capital of Australia | what's the capital of Austria | same question |
-| How do I **enable** 2FA on GitHub? | How do I **disable** 2FA on GitHub? | same question |
-| Is Postgres better than MySQL? | Is MySQL better than Postgres? | *identical* bag of words |
-| Weather in Chicago **today**? | Weather in Chicago **tomorrow**? | same question |
-| Convert 500 **EUR to USD** | Convert 500 **USD to EUR** | *identical* bag of words |
-| Write a **haiku** about the ocean | Write a **sonnet** about the ocean | same question |
-
-kmemo treats these as the main event rather than an edge case. Similarity is only the first filter;
-candidates that clear it are then read as text by a chain of guards looking for concrete evidence
-that the answers must differ.
-
-The costs are asymmetric, and the defaults follow that: **a wrong rejection costs one API call — the
-exact call you would have made without a cache. A wrong acceptance costs a wrong answer.**
-
-## Why this doesn't already exist on the JVM
-
-- **Spring AI** has no built-in semantic cache. You can hand-roll one as a custom `ChatClient` advisor.
-- **LangChain4j** has no built-in semantic cache either.
-- **GPTCache**, the reference implementation, is Python-only.
-
-The JVM AI ecosystem has matured everywhere else. This piece is missing, and the hand-rolled versions
-that fill the gap are exactly the ones that get the false-hit problem wrong.
-
-## Install
-
-> **Not on Maven Central yet.** 0.1.0 is unreleased; build it locally with
-> `./gradlew publishToMavenLocal` and add `mavenLocal()` to your repositories until it ships.
+Every mainstream embedding model scores that pair around 0.99. No threshold separates it from a
+genuine paraphrase, because on the similarity axis **the near miss is closer than most paraphrases
+are**. So a cache built on a threshold alone will tell someone that 250 dollars is 92 euros —
+quickly, with no error and nothing in the logs. kmemo treats that as the main event: similarity is
+only the first filter, and candidates that clear it are read as text by a chain of guards looking for
+concrete evidence the answers must differ.
 
 ```kotlin
-dependencies {
-    implementation("dev.nacode.kmemo:kmemo-core:0.1.0")
-}
-```
-
-One transitive dependency: `kotlinx-coroutines-core`. No provider SDKs, no vector database driver, no
-serialization framework.
-
-## Quickstart
-
-```kotlin
-import dev.nacode.kmemo.*
-import dev.nacode.kmemo.store.InMemoryStore
-import kotlin.time.Duration.Companion.hours
-
-// You bring the embeddings — OpenAI, Cohere, Voyage, a local ONNX model, whatever you already pay for.
-val embedder = Embedder { text -> openAi.embed(text) }
-
 val cache = SemanticCache(
-    embedder = embedder,
+    embedder = Embedder { text -> openAi.embed(text) },
     store = InMemoryStore(maxEntries = 10_000, ttl = 1.hours),
 )
 
 val answer = cache.getOrPut(prompt) { llm.complete(it) }
 ```
 
+kmemo caches responses for embeddings you already have — `openAi.embed` above is your own embedding
+source; kmemo ships none and depends on no provider SDK.
+
+> **Status — early development.** The cache, the nine guards, the in-memory store and the threshold
+> calibrator are implemented and tested against a labelled corpus. APIs may change before `1.0`.
+
+## Why kmemo
+
+- **Guards against false hits** — nine lexical checks catch the near misses a threshold cannot:
+  swapped numbers, units, entities, time references, negation, flipped antonyms, reversed
+  comparisons, a different answer being asked for. Measured, not asserted: **68 of 71 near misses
+  rejected, 0 of 38 genuine paraphrases rejected**, on every build.
+- **Safety by default** — the costs are asymmetric. A wrong rejection costs one API call, the exact
+  call you would have made without a cache. A wrong acceptance costs a wrong answer. Defaults follow
+  that, and guards abstain rather than guess.
+- **Calibrated, not copied** — `ThresholdCalibrator` measures the right threshold for *your*
+  embedding model. A value from a blog post is tuned to somebody else's.
+- **Provider-agnostic** — `Embedder` and `CacheStore` are one-method seams. Bring OpenAI, Cohere,
+  Voyage or a local ONNX model; start in memory and move to a vector database without touching
+  match logic.
+- **Coroutine-first, small footprint** — every operation is a `suspend` function, and the published
+  artifact depends on `kotlinx-coroutines-core` and nothing else.
+- **Diagnosable** — every miss reports *why*. A cache with a 4% hit rate is untunable unless you know
+  whether prompts land below the threshold or are vetoed by a guard; the fix is opposite in each case.
+
+## Installation
+
+Requires **JDK 17+**. Artifacts are published to Maven Central under `io.github.nacode-studios`.
+
+```kotlin
+dependencies {
+    implementation("io.github.nacode-studios:kmemo-core:0.1.0")
+}
+```
+
+> **Not published yet.** `0.1.0` is unreleased. Until it ships, build it locally with
+> `./gradlew publishToMavenLocal` and add `mavenLocal()` to your repositories.
+
+You also need an embedding source. Any function from `String` to `FloatArray` will do.
+
+## Usage
+
+### Caching a call
+
+```kotlin
+val answer = cache.getOrPut(prompt) { llm.complete(it) }
+```
+
 `getOrPut` embeds the prompt **once** and reuses the vector for both the lookup and the write. Doing
 it by hand with `get` then `put` costs two embedding calls on every miss.
 
-When you want to know *why* a lookup went the way it did:
+### Reading a miss
 
 ```kotlin
 when (val result = cache.lookup(prompt)) {
@@ -97,10 +93,81 @@ when (val result = cache.lookup(prompt)) {
 }
 ```
 
-A cache whose hit rate is 4% is impossible to tune unless you know whether prompts are landing below
-the threshold or being vetoed by a guard — the fix is the opposite in each case.
+`MissReason` is one of `EMPTY_SCOPE`, `BELOW_THRESHOLD`, `REJECTED_BY_GUARD` or
+`REJECTED_BY_VERIFIER`, and `detail` names the guard that fired and why.
 
-## How a lookup is decided
+### Scopes
+
+Anything that changes what a correct answer looks like belongs in the scope string — model,
+temperature, system prompt, tenant, user language. Lookups only ever see their own scope.
+
+```kotlin
+cache.getOrPut(prompt, scope = "gpt-4o|t=0.0|sysprompt-v3") { llm.complete(it) }
+```
+
+Without this, a cache shared between two models will serve one model's answer to the other's caller.
+It is the second most common way a hand-rolled semantic cache goes wrong.
+
+### Choosing guards
+
+```kotlin
+SemanticCache(embedder)                                            // MatchGuards.standard()
+SemanticCache(embedder, guards = MatchGuards.strict())             // trades hit rate for margin
+SemanticCache(embedder, guards = MatchGuards.none())               // the naive baseline
+SemanticCache(embedder, guards = MatchGuards.standard() + MyGuard())
+```
+
+Every guard takes its word lists as a constructor parameter, so adapting to another language is
+configuration rather than a fork:
+
+```kotlin
+NegationGuard(markers = setOf("non", "senza", "mai"))
+```
+
+### Verifying what lexical guards cannot see
+
+Two prompts that differ only in world knowledge — `bake salmon fillets` versus `bake chicken
+breasts` — are invisible to a lexical guard. A `Verifier` runs only on candidates that already
+cleared the threshold and every guard, so it fires on a small fraction of lookups:
+
+```kotlin
+val verifier = Verifier { query, cached, _ ->
+    haiku.complete("Same correct answer? Reply YES or NO.\nA: $cached\nB: $query").startsWith("YES")
+}
+```
+
+### Calibrating the threshold
+
+```kotlin
+val report = ThresholdCalibrator(myEmbedder).calibrate(myLabelledPairs)
+println(report.summary())
+
+val cache = SemanticCache(myEmbedder, threshold = report.recommended.threshold)
+```
+
+A hundred pairs from your own traffic is plenty, and half should be near misses. Pairs that are
+obviously unrelated teach the calibrator nothing, because no threshold ever confuses them.
+
+### Observability
+
+```kotlin
+val stats = cache.stats()
+stats.hitRate            // fraction served from cache
+stats.guardRejections    // wrong answers that were not served
+stats.belowThreshold     // prompts that simply did not repeat
+```
+
+A high `belowThreshold` means your traffic repeats less than you assumed, or your threshold is too
+tight for your model. A high `guardRejections` means the opposite — prompts are landing close
+together and the guards are catching near misses your threshold alone would have served.
+
+## Architecture
+
+| Module | Contents |
+| --- | --- |
+| `kmemo-core` | `SemanticCache`, the `Embedder` and `CacheStore` seams, the guard chain, `InMemoryStore`, `ThresholdCalibrator` — and no provider or database knowledge. |
+
+A lookup is decided in four stages, each cheaper than the one it protects:
 
 ```
 prompt ──► embed ──► nearest 5 in scope ──► similarity ≥ threshold?
@@ -116,13 +183,10 @@ prompt ──► embed ──► nearest 5 in scope ──► similarity ≥ thr
 Looking past the nearest neighbour matters: when a guard vetoes the closest entry, the second closest
 is often a perfectly good answer.
 
-## The guards
-
-Each one targets a distinct way a near miss slips past a threshold. All are pure, lexical and free —
-no model call, no network.
+### The guards
 
 | Guard | Rejects when | Example it catches |
-|---|---|---|
+| --- | --- | --- |
 | `NumericGuard` | the prompts contain different numbers | `100 USD` vs `250 USD` |
 | `UnitGuard` | units or currencies are substituted | `50 km to miles` vs `50 km to meters` |
 | `TemporalGuard` | different absolute time reference | `weather today` vs `weather tomorrow` |
@@ -133,35 +197,30 @@ no model call, no network.
 | `DirectionGuard` | same words, reversed comparison or conversion | `EUR to USD` vs `USD to EUR` |
 | `LexicalDivergenceGuard` | the prompts share almost no content words | backstop for everything else |
 
-The interesting engineering is in **not** over-rejecting, since every wrong rejection is money:
+`LengthRatioGuard` ships too, but stays out of `standard()`: "python list reverse" and "How do I
+reverse a list in Python?" are a four-fold difference in length and the same question.
 
-- `EntityGuard` rejects a *substitution*, never an *addition* — so "what does SOLID stand for in OOP"
-  still matches "what does each letter of SOLID mean in object oriented design".
-- `AntonymGuard` counts occurrences instead of testing membership, so "turn **on** format **on** save"
-  vs "turn **off** format **on** save" is caught even though both prompts contain `on`.
-- `DirectionGuard` only fires when a comparison or conversion cue is present. "In Python, sort a
-  dictionary" and "sort a dictionary in Python" are a reordering and stay a hit; "is A better than B"
-  and "is B better than A" are not.
-- `LexicalDivergenceGuard` matches typos and inflections fuzzily (`instal` → `install`, `commit` →
-  `committed`) but caps fuzziness at one edit, which is deliberately too strict to merge `Austria`
-  with `Australia`.
+The interesting engineering is in **not** over-rejecting:
 
-Swap the set at construction:
+- `EntityGuard` and `UnitGuard` reject a *substitution*, never an *addition* — so "what does SOLID
+  stand for in OOP" still matches "what does each letter of SOLID mean in object oriented design",
+  and `km` and `kilometers` are one unit rather than a swap.
+- `AntonymGuard` counts occurrences instead of testing membership, so "turn **on** format **on**
+  save" vs "turn **off** format **on** save" is caught even though both prompts contain `on`.
+- `DirectionGuard` fires only on a comparison or conversion cue, and ignores rotations. Moving a
+  trailing phrase to the front never changes the question: "How do I move a file in Linux?" and "In
+  Linux, how do I move a file?" stay a hit, while "is A better than B" and "is B better than A" do
+  not.
+- `LexicalDivergenceGuard` matches typos and inflections fuzzily (`instal` → `install`, `cahce` →
+  `cache`, `commit` → `committed`) but caps fuzziness at one edit, deliberately too strict to merge
+  `Austria` with `Australia`.
 
-```kotlin
-SemanticCache(embedder, guards = MatchGuards.strict())   // trades hit rate for margin
-SemanticCache(embedder, guards = MatchGuards.none())     // the naive baseline, for comparison
-SemanticCache(embedder, guards = MatchGuards.standard() + MyDomainGuard())
-```
-
-## Measured, not asserted
+### Correctness, measured
 
 kmemo ships a corpus of **109 labelled prompt pairs** (`near-miss-corpus.json`): 71 that must never
 share a cached answer, and 38 genuine paraphrases that must. The near misses are mostly a single
-token apart, because that is where a semantic cache actually breaks — pairs that are obviously
-unrelated prove nothing.
-
-Guards are measured against it on every build, with no embedder involved:
+token apart, because that is where a semantic cache actually breaks. The corpus carries its own
+control group, so a guard set that rejects everything scores zero rather than looking perfect.
 
 ```
 category                  pairs   standard     strict
@@ -180,131 +239,66 @@ verbosity                     7       100%       100%   must match
 word-order                    6       100%       100%   must match
 ```
 
-**68 of 71 near misses rejected. 0 of 38 paraphrases rejected.**
-
-The three that get through are honest limitations, not rounding: two need world knowledge
-(`bake salmon fillets` vs `bake chicken breasts` — lexically almost identical, semantically not) and
-one is an unmarked depth qualifier (`how does HTTPS work` vs `how does HTTPS work at the packet
-level`). That is what the optional `Verifier` is for.
+The three near misses that get through are honest limitations: two need world knowledge (`bake
+salmon fillets` vs `bake chicken breasts`) and one is an unmarked depth qualifier (`how does HTTPS
+work` vs `how does HTTPS work at the packet level`). That is what the `Verifier` hook is for.
 
 Note that `strict()` catches nothing extra on this corpus while rejecting 38% of paraphrases. It
 exists for traffic whose near misses are lexically distant in ways this corpus does not model —
 measure it against your own pairs before choosing it.
 
-Run it yourself:
+Running the calibrator over the same corpus with a deliberately adversarial stub embedder that scores
+every near miss above 0.99:
 
-```bash
-./gradlew :kmemo-core:test --tests '*NearMissCorpusTest*'
-```
-
-## Calibrating the threshold
-
-A threshold copied from a blog post is a threshold tuned to somebody else's model. The same pair
-scores 0.86 with one embedding model and 0.94 with another, and the failure is silent because a false
-hit looks exactly like a fast response.
-
-```kotlin
-val report = ThresholdCalibrator(myEmbedder).calibrate(myLabelledPairs)
-println(report.summary())
-
-val cache = SemanticCache(myEmbedder, threshold = report.recommended.threshold)
-```
-
-A hundred pairs from your own traffic is plenty, and half should be near misses. The report sweeps
-the range and shows what each setting costs in wrong answers and in missed hits.
-
-Running it over the bundled corpus, with a deliberately adversarial stub embedder that scores every
-near miss above 0.99:
-
-| | best false-hit rate reachable | precision at that point |
-|---|---|---|
+| | best false-hit rate reachable | precision there |
+| --- | --- | --- |
 | similarity threshold alone | **35.2%** (no threshold in `0.70..0.99` did better) | 0.19 |
 | similarity + standard guards | **0%**, at threshold 0.81 | 1.00 |
 
 Guards do not merely reduce false hits — they let you run a *lower* threshold safely, which returns
-*more* hits than the similarity-only configuration managed at any setting.
+more hits than the similarity-only configuration managed at any setting.
 
 > The stub embedder is built to make near misses look identical, so these false-hit figures
 > demonstrate the mechanism honestly. The absolute recall numbers are not representative of a real
-> embedding model, which rewards paraphrases in a way the stub deliberately does not. Calibrate
-> against your own model and your own traffic.
+> embedding model, which rewards paraphrases in a way the stub deliberately does not.
 
-## Scopes
+## Roadmap
 
-Anything that changes what a correct answer looks like belongs in the scope string — model,
-temperature, system prompt, tenant, user language. Lookups only ever see their own scope.
+**Now** — `SemanticCache` with scopes, stats and typed misses; `Embedder` and `CacheStore` seams;
+nine guards plus an opt-in `LengthRatioGuard`; an optional `Verifier`; `InMemoryStore` with TTL and
+LRU; `ThresholdCalibrator`; the labelled corpus.
 
-```kotlin
-cache.getOrPut(prompt, scope = "gpt-4o|t=0.0|sysprompt-v3") { llm.complete(it) }
-```
+**Next** — Redis and Postgres/pgvector stores, a Spring AI `Advisor` and a LangChain4j wrapper
+(neither framework ships a semantic cache), request coalescing for concurrent identical misses, and
+non-English vocabularies.
 
-Without this, a cache shared between two models will serve one model's answer to the other's caller.
-It is the second most common way a hand-rolled semantic cache goes wrong.
-
-## Stores
-
-`InMemoryStore` is the default: bounded, LRU-evicted, optional TTL, safe across coroutines. Search is
-a linear scan, which at the default 10,000 entries and 1,536-dimensional vectors is well under a
-millisecond — nothing next to the network call it replaces. Past ~100,000 entries, or as soon as you
-want the cache shared between instances or surviving a restart, implement `CacheStore`:
-
-```kotlin
-public interface CacheStore {
-    suspend fun put(entry: CacheEntry)
-    suspend fun search(scope: String, embedding: FloatArray, limit: Int): List<ScoredEntry>
-    suspend fun touch(id: String)
-    suspend fun remove(id: String): Boolean
-    suspend fun clear(scope: String?)
-    suspend fun size(scope: String?): Int
-}
-```
-
-Three rules: `search` never returns an expired entry, returns at most `limit` results sorted by
-descending similarity, and every method is safe to call concurrently. Vectors are unit-normalized on
-the way in, so similarity is a plain dot product.
-
-## Observability
-
-```kotlin
-val stats = cache.stats()
-stats.hitRate            // fraction served from cache
-stats.guardRejections    // wrong answers that were not served
-stats.belowThreshold     // prompts that simply did not repeat
-```
-
-A high `belowThreshold` means your traffic repeats less than you assumed, or your threshold is too
-tight for your model. A high `guardRejections` means the opposite — prompts are landing close
-together and the guards are catching near misses your threshold alone would have served.
-
-## Scope of 0.1
-
-**In:** `SemanticCache`, the `Embedder` and `CacheStore` abstractions, cosine search with a
-configurable threshold, the nine default guards plus an opt-in `LengthRatioGuard`, an optional
-`Verifier` hook, `InMemoryStore` with TTL and LRU, `ThresholdCalibrator`, the labelled corpus.
-
-**Not yet:** Redis and Postgres/pgvector adapters, a Spring AI `Advisor`, a LangChain4j wrapper,
-request coalescing for concurrent identical misses, non-English vocabularies (every guard takes its
-word lists as a constructor parameter, so this is configuration rather than a fork).
-
-## Known limitations
-
-- Guards are lexical. Two prompts that differ only in world knowledge (`salmon` vs `chicken`) are
-  invisible to them. Use a `Verifier` when that matters.
-- Vocabularies are English. Everything is injectable, but nothing else ships.
-- `getOrPut` is a cache, not a request coalescer: concurrent misses on the same prompt each call the
-  model.
-- The default threshold of 0.95 is conservative on purpose. It is a starting point, not a
-  recommendation — calibrate it.
-
-## Building
+## Building and testing
 
 ```bash
-./gradlew build          # compile, explicit API mode, all warnings as errors
-./gradlew test           # 87 tests
+./gradlew build          # compile, test, verify public API (binary-compatibility-validator)
+./gradlew apiCheck       # check the tracked public API in *.api
+./gradlew apiDump        # regenerate *.api after an intentional public-API change
+
+./gradlew :kmemo-core:test --tests '*NearMissCorpusTest*'   # the corpus report above
 ```
 
-JDK 17+, Kotlin 2.4.
+The build runs with explicit API mode and `allWarningsAsErrors`. Tests need no external services —
+104 of them, all offline.
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Please run `./gradlew build`
+before opening a pull request; if you change the public API, run `./gradlew apiDump` and commit the
+updated `*.api` files.
+
+Guard changes have a stricter bar: they must be measured against the corpus, and a guard may never
+reject a genuine paraphrase. A near-miss pair that slips through is a useful contribution on its own,
+even without a fix.
 
 ## License
 
-Apache 2.0. Copyright © 2026 NaCode Studios.
+Licensed under the [Apache License 2.0](LICENSE).
+
+## Sponsor
+
+If kmemo is useful to you, consider [sponsoring NaCode Studios](https://github.com/sponsors/NaCode-Studios).
