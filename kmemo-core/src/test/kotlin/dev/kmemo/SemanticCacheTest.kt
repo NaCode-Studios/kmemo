@@ -10,6 +10,7 @@ import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlin.math.sqrt
 import kotlin.test.Test
@@ -18,6 +19,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class SemanticCacheTest {
 
@@ -125,6 +128,40 @@ class SemanticCacheTest {
         val miss = assertIs<CacheLookup.Miss>(cache.lookup("How do I reverse a list?"))
         assertEquals(MissReason.REJECTED_BY_VERIFIER, miss.reason)
         assertEquals(1, cache.stats().verifierRejections)
+    }
+
+    @Test
+    fun `a verifier that throws fails closed, not through`() = runTest {
+        val cache = SemanticCache(
+            embedder = HashingEmbedder(),
+            verifier = Verifier { _, _, _ -> throw IllegalStateException("verifier is down") },
+        )
+        cache.put("How do I reverse a list?", "answer")
+
+        // The exception becomes a miss, it does not escape: a broken verifier degrades to calling the
+        // model, it does not take the caller down with it.
+        val miss = assertIs<CacheLookup.Miss>(cache.lookup("How do I reverse a list?"))
+        assertEquals(MissReason.REJECTED_BY_VERIFIER, miss.reason)
+        assertEquals(1, cache.stats().verifierRejections)
+
+        var computed = false
+        val answer = cache.getOrPut("How do I reverse a list?") { computed = true; "fresh" }
+        assertEquals("fresh", answer)
+        assertTrue(computed, "a fail-closed verifier must let getOrPut fall through to the model")
+    }
+
+    @Test
+    fun `a verifier that stalls is timed out and fails closed`() = runTest {
+        val cache = SemanticCache(
+            embedder = HashingEmbedder(),
+            verifier = Verifier { _, _, _ -> delay(1.seconds); true },
+            verifierTimeout = 50.milliseconds,
+        )
+        cache.put("How do I reverse a list?", "answer")
+
+        val miss = assertIs<CacheLookup.Miss>(cache.lookup("How do I reverse a list?"))
+        assertEquals(MissReason.REJECTED_BY_VERIFIER, miss.reason)
+        assertTrue(miss.detail.orEmpty().contains("timed out"), "expected a timeout detail, got ${miss.detail}")
     }
 
     @Test

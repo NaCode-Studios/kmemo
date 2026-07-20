@@ -5,9 +5,12 @@ import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
 import dev.kmemo.internal.KeyedMutex
 import dev.kmemo.store.InMemoryStore
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 import java.time.Duration as JavaDuration
 
@@ -64,6 +67,10 @@ import java.time.Duration as JavaDuration
  *   default; [MatchGuards.none] reproduces the naive similarity-only behaviour.
  * @param verifier optional final check, typically a cheap model call, run only on candidates that
  *   already passed everything else.
+ * @param verifierTimeout optional cap on a single [Verifier.verify] call. On timeout — or if the
+ *   verifier throws — the candidate is **rejected**, not served: a check that could not complete must
+ *   fail closed, since the verifier exists precisely to keep an unconfirmed answer out. `null` (the
+ *   default) applies no timeout.
  * @param candidates how many nearest entries to consider. Looking past the closest one matters:
  *   when a guard rejects the top candidate, the second may still be a correct answer.
  * @param coalesceConcurrentMisses whether concurrent [getOrPut] calls for the same prompt in the
@@ -77,6 +84,7 @@ public class SemanticCache(
     private val threshold: Double = DEFAULT_THRESHOLD,
     private val guards: List<MatchGuard> = MatchGuards.standard(),
     private val verifier: Verifier? = null,
+    private val verifierTimeout: Duration? = null,
     private val candidates: Int = DEFAULT_CANDIDATES,
     private val coalesceConcurrentMisses: Boolean = true,
     private val clock: Clock = Clock.systemUTC(),
@@ -85,6 +93,9 @@ public class SemanticCache(
     init {
         require(threshold in -1.0..1.0) { "threshold must be within [-1.0, 1.0], was $threshold" }
         require(candidates > 0) { "candidates must be positive, was $candidates" }
+        require(verifierTimeout == null || verifierTimeout.isPositive()) {
+            "verifierTimeout must be positive, was $verifierTimeout"
+        }
     }
 
     private val inFlight = KeyedMutex()
@@ -287,14 +298,10 @@ public class SemanticCache(
                 continue
             }
 
-            if (verifier?.verify(prompt, scored.entry.prompt, scored.similarity) == false) {
+            val verifierDetail = verifierRejects(prompt, scored.entry.prompt, scored.similarity)
+            if (verifierDetail != null) {
                 if (refusal == null) {
-                    refusal = Refusal(
-                        MissReason.REJECTED_BY_VERIFIER,
-                        scored,
-                        "verifier rejected this candidate",
-                        guardName = null,
-                    )
+                    refusal = Refusal(MissReason.REJECTED_BY_VERIFIER, scored, verifierDetail, guardName = null)
                 }
                 continue
             }
@@ -336,6 +343,30 @@ public class SemanticCache(
             if (verdict is GuardVerdict.Reject) return GuardRejection(guard.name, verdict.reason)
         }
         return null
+    }
+
+    /**
+     * Runs the verifier fail-closed: returns a rejection detail, or `null` when the candidate passed
+     * (or there is no verifier). A verifier that throws or times out **rejects** — serving a response
+     * it could not confirm is the one outcome the verifier exists to prevent, and a rejection costs a
+     * single model call, the asymmetry the whole cache turns on. [CancellationException] is never
+     * swallowed, so coroutine cancellation still propagates.
+     */
+    private suspend fun verifierRejects(prompt: String, candidate: String, similarity: Double): String? {
+        val verifier = verifier ?: return null
+        return try {
+            val passed = if (verifierTimeout == null) {
+                verifier.verify(prompt, candidate, similarity)
+            } else {
+                withTimeoutOrNull(verifierTimeout) { verifier.verify(prompt, candidate, similarity) }
+                    ?: return "verifier timed out after $verifierTimeout"
+            }
+            if (passed) null else "verifier rejected this candidate"
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            "verifier failed (${e::class.simpleName ?: "error"}), treated as a rejection"
+        }
     }
 
     private suspend fun hit(scored: ScoredEntry, counted: Boolean = true): CacheLookup.Hit {

@@ -142,6 +142,20 @@ val verifier = Verifier { query, cached, _ ->
 }
 ```
 
+Wire it in with a timeout and verdict caching, so a slow or repeated check never costs more than it
+should:
+
+```kotlin
+val cache = SemanticCache(
+    embedder,
+    verifier = verifier.caching(ttl = 6.hours),   // judge each pair once, not on every lookup
+    verifierTimeout = 2.seconds,                   // and fail closed if it stalls
+)
+```
+
+If the verifier throws or times out, the candidate is **rejected**, never served — an answer it could
+not confirm is exactly what it exists to keep out.
+
 ### Calibrating the threshold
 
 ```kotlin
