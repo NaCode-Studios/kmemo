@@ -5,9 +5,12 @@ import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
 import dev.kmemo.internal.KeyedMutex
 import dev.kmemo.store.InMemoryStore
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 import java.time.Duration as JavaDuration
 
@@ -64,6 +67,10 @@ import java.time.Duration as JavaDuration
  *   default; [MatchGuards.none] reproduces the naive similarity-only behaviour.
  * @param verifier optional final check, typically a cheap model call, run only on candidates that
  *   already passed everything else.
+ * @param verifierTimeout optional cap on a single [Verifier.verify] call. On timeout — or if the
+ *   verifier throws — the candidate is **rejected**, not served: a check that could not complete must
+ *   fail closed, since the verifier exists precisely to keep an unconfirmed answer out. `null` (the
+ *   default) applies no timeout.
  * @param candidates how many nearest entries to consider. Looking past the closest one matters:
  *   when a guard rejects the top candidate, the second may still be a correct answer.
  * @param coalesceConcurrentMisses whether concurrent [getOrPut] calls for the same prompt in the
@@ -77,6 +84,7 @@ public class SemanticCache(
     private val threshold: Double = DEFAULT_THRESHOLD,
     private val guards: List<MatchGuard> = MatchGuards.standard(),
     private val verifier: Verifier? = null,
+    private val verifierTimeout: Duration? = null,
     private val candidates: Int = DEFAULT_CANDIDATES,
     private val coalesceConcurrentMisses: Boolean = true,
     private val clock: Clock = Clock.systemUTC(),
@@ -85,6 +93,9 @@ public class SemanticCache(
     init {
         require(threshold in -1.0..1.0) { "threshold must be within [-1.0, 1.0], was $threshold" }
         require(candidates > 0) { "candidates must be positive, was $candidates" }
+        require(verifierTimeout == null || verifierTimeout.isPositive()) {
+            "verifierTimeout must be positive, was $verifierTimeout"
+        }
     }
 
     private val inFlight = KeyedMutex()
@@ -95,6 +106,12 @@ public class SemanticCache(
     private val guardRejectionCount = AtomicLong()
     private val verifierRejectionCount = AtomicLong()
     private val writeCount = AtomicLong()
+
+    // One counter per guard, fixed at construction so no entry is ever inserted concurrently — the
+    // hot path only ever does an atomic increment on a key that already exists. Guards that share a
+    // name (unusual) share a counter, which keeps the per-guard sum equal to [guardRejectionCount].
+    private val guardRejectionCountersByName: Map<String, AtomicLong> =
+        guards.associate { it.name to AtomicLong() }
 
     /**
      * Looks up [prompt] and reports the full outcome, including why a miss was a miss.
@@ -109,6 +126,35 @@ public class SemanticCache(
     /** Returns the cached response for [prompt], or `null`. The short form of [lookup]. */
     public suspend fun get(prompt: String, scope: String = DEFAULT_SCOPE): String? =
         (lookup(prompt, scope) as? CacheLookup.Hit)?.response
+
+    /**
+     * Explains how [prompt] would be decided in [scope], without changing anything.
+     *
+     * A read-only companion to [lookup] for tuning. It embeds the prompt (one [Embedder.embed] call)
+     * and pulls the same nearest candidates, then reports each one's similarity and *every* guard's
+     * verdict — not stopping at the first rejection, the way a real lookup does. It does **not** touch
+     * [stats], does **not** mark any entry recently-used, and does **not** run the [Verifier]: a
+     * diagnostic that moved the counters you are reading, or spent a model call, would defeat its own
+     * purpose.
+     *
+     * Reach for it when a hit you expected did not happen. [CacheExplanation.decision] says whether
+     * the threshold or a guard stood in the way, and [CandidateTrace.guardVerdicts] says which guard
+     * and why — across every candidate, so a usable second-nearest entry is visible too.
+     */
+    public suspend fun explain(prompt: String, scope: String = DEFAULT_SCOPE): CacheExplanation {
+        val embedding = embed(prompt)
+        val traces = store.search(scope, embedding, candidates).map { scored ->
+            val verdicts = LinkedHashMap<String, GuardVerdict>(guards.size)
+            for (guard in guards) verdicts[guard.name] = guard.evaluate(prompt, scored.entry.prompt)
+            CandidateTrace(
+                prompt = scored.entry.prompt,
+                similarity = scored.similarity,
+                aboveThreshold = scored.similarity >= threshold,
+                guardVerdicts = verdicts,
+            )
+        }
+        return CacheExplanation(prompt, scope, threshold, traces)
+    }
 
     /**
      * Caches [response] as the answer to [prompt] and returns the new entry's id.
@@ -206,6 +252,7 @@ public class SemanticCache(
             guardRejections = guardRejectionCount.get(),
             verifierRejections = verifierRejectionCount.get(),
             writes = writeCount.get(),
+            guardRejectionsByGuard = guardRejectionCountersByName.mapValues { it.value.get() },
         )
     }
 
@@ -240,17 +287,21 @@ public class SemanticCache(
 
             val rejection = firstRejection(prompt, scored.entry.prompt)
             if (rejection != null) {
-                if (refusal == null) refusal = Refusal(MissReason.REJECTED_BY_GUARD, scored, rejection)
+                if (refusal == null) {
+                    refusal = Refusal(
+                        MissReason.REJECTED_BY_GUARD,
+                        scored,
+                        "${rejection.guardName}: ${rejection.reason}",
+                        rejection.guardName,
+                    )
+                }
                 continue
             }
 
-            if (verifier?.verify(prompt, scored.entry.prompt, scored.similarity) == false) {
+            val verifierDetail = verifierRejects(prompt, scored.entry.prompt, scored.similarity)
+            if (verifierDetail != null) {
                 if (refusal == null) {
-                    refusal = Refusal(
-                        MissReason.REJECTED_BY_VERIFIER,
-                        scored,
-                        "verifier rejected this candidate",
-                    )
+                    refusal = Refusal(MissReason.REJECTED_BY_VERIFIER, scored, verifierDetail, guardName = null)
                 }
                 continue
             }
@@ -266,21 +317,56 @@ public class SemanticCache(
 
         if (counted) {
             when (refusal.reason) {
-                MissReason.REJECTED_BY_GUARD -> guardRejectionCount.incrementAndGet()
+                MissReason.REJECTED_BY_GUARD -> {
+                    guardRejectionCount.incrementAndGet()
+                    refusal.guardName?.let { guardRejectionCountersByName[it]?.incrementAndGet() }
+                }
                 else -> verifierRejectionCount.incrementAndGet()
             }
         }
         return miss(refusal.reason, refusal.candidate, refusal.detail)
     }
 
-    private class Refusal(val reason: MissReason, val candidate: ScoredEntry, val detail: String)
+    private class Refusal(
+        val reason: MissReason,
+        val candidate: ScoredEntry,
+        val detail: String,
+        // The guard that fired, for the per-guard breakdown; null for a verifier refusal.
+        val guardName: String?,
+    )
 
-    private fun firstRejection(prompt: String, candidatePrompt: String): String? {
+    private class GuardRejection(val guardName: String, val reason: String)
+
+    private fun firstRejection(prompt: String, candidatePrompt: String): GuardRejection? {
         for (guard in guards) {
             val verdict = guard.evaluate(prompt, candidatePrompt)
-            if (verdict is GuardVerdict.Reject) return "${guard.name}: ${verdict.reason}"
+            if (verdict is GuardVerdict.Reject) return GuardRejection(guard.name, verdict.reason)
         }
         return null
+    }
+
+    /**
+     * Runs the verifier fail-closed: returns a rejection detail, or `null` when the candidate passed
+     * (or there is no verifier). A verifier that throws or times out **rejects** — serving a response
+     * it could not confirm is the one outcome the verifier exists to prevent, and a rejection costs a
+     * single model call, the asymmetry the whole cache turns on. [CancellationException] is never
+     * swallowed, so coroutine cancellation still propagates.
+     */
+    private suspend fun verifierRejects(prompt: String, candidate: String, similarity: Double): String? {
+        val verifier = verifier ?: return null
+        return try {
+            val passed = if (verifierTimeout == null) {
+                verifier.verify(prompt, candidate, similarity)
+            } else {
+                withTimeoutOrNull(verifierTimeout) { verifier.verify(prompt, candidate, similarity) }
+                    ?: return "verifier timed out after $verifierTimeout"
+            }
+            if (passed) null else "verifier rejected this candidate"
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            "verifier failed (${e::class.simpleName ?: "error"}), treated as a rejection"
+        }
     }
 
     private suspend fun hit(scored: ScoredEntry, counted: Boolean = true): CacheLookup.Hit {

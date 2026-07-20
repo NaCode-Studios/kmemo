@@ -47,17 +47,17 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   153), the last written blind. Blind validation: near misses rejected **67%**, paraphrases kept
   **88%**.
 
-Not yet published to Maven Central — `0.1.0` is built locally with `publishToMavenLocal`. Shipping it
-is M1.
+Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07-19). The next
+release — `0.2.0` — is the M2–M3 work below.
 
 ## Progress
 
 | Milestone | Status |
 | --- | --- |
-| **0.1.0 core** | ✅ Implemented and tested (unreleased). |
-| **M1** · Ship `0.1.0` to Maven Central | Planned (next). |
-| **M2** · Per-guard measurement & observability | Planned. |
-| **M3** · The Verifier, completed | Planned. |
+| **0.1.0 core** | ✅ Implemented and tested. |
+| **M1** · Ship `0.1.0` to Maven Central | ✅ Shipped — `0.1.0` live on Maven Central + GitHub Packages. |
+| **M2** · Per-guard measurement & observability | ✅ Shipped. |
+| **M3** · The Verifier, completed | ✅ Shipped (speculative batch verification deferred by decision). |
 | **M4** · Store conformance suite (TCK) | Planned. |
 | **M5** · Redis store | Planned. |
 | **M6** · Postgres / pgvector store | Planned. |
@@ -74,6 +74,12 @@ is M1.
 | **M17** · Kotlin Multiplatform core | Post-`1.0`. |
 | **M18** · Advanced matching & adaptive caching | Post-`1.0`. |
 
+**Deferred sub-items:** speculative **batch / parallel verification** (M3) is decided *against* rather
+than postponed — the lookup verifies candidates best-first and short-circuits, so parallelizing would
+issue more model calls to save latency, inverting the cost model the cache is built on. The
+**`SNAPSHOT`-on-`main` job** (originally M1) moves to **M15**: it needs `-SNAPSHOT` versioning
+discipline, and like Kdrant, Kmemo ships tag-driven releases only until then.
+
 ## Effort legend
 
 `S` ≈ hours–1 day · `M` ≈ several days · `L` ≈ 1–2 weeks · `XL` ≈ multi-week / multiple sub-parts.
@@ -87,14 +93,17 @@ decided the way it was, and covering the near misses lexical rules cannot.
 
 ### M1 · Ship `0.1.0` to Maven Central — `S`
 
-Turn the built-but-unpublished core into an artifact people can depend on.
+Turn the built core into an artifact people can depend on. **Done — `0.1.0` is live on Maven Central
+and GitHub Packages** (tag `v0.1.0`); the milestone is kept as the record of how Kmemo ships.
 
 - Publish `kmemo-core` to Maven Central under `io.github.nacode-studios` (signing, `sources` + `javadoc`
-  jars) and mirror to GitHub Packages; remove the "not published yet" notice from the README.
-- Rich POM metadata: `description`, keywords, `url`, `scm`, license, developers.
-- A tagged release with CHANGELOG notes; a `SNAPSHOT` job on `main` so integrators can track unreleased
-  fixes.
-- Confirm `apiCheck` runs in CI as a release gate (the `*.api` files are the compatibility contract).
+  jars) and mirror to GitHub Packages, via the tag-driven `release.yml`. ✅ shipped.
+- Rich POM metadata (`description`, `url`, `scm`, license, developers) and a Dokka API-docs site on
+  GitHub Pages (`docs.yml`), linked from the README. ✅
+- `apiCheck` runs in CI as a release gate — `./gradlew build` verifies the `*.api` compatibility
+  contract on every push and PR. ✅
+- A `SNAPSHOT` job on `main` is **deferred to M15**: it needs `-SNAPSHOT` versioning discipline, and —
+  like Kdrant — Kmemo ships tag-driven releases only until then.
 
 ### M2 · Per-guard measurement & observability — `S`
 
@@ -299,6 +308,8 @@ Bring CI and tests up to a mature OSS standard, and make the corpus a first-clas
   (the build already runs explicit-API mode and `allWarningsAsErrors`).
 - Dependabot / Renovate (Gradle + GitHub Actions) and a dependency-review / CVE step on PRs.
 - A JDK `17 / 21 / 23` matrix; build-provenance / SLSA attestation on release.
+- A `SNAPSHOT` publish job on `main` (with `-SNAPSHOT` versioning) so integrators can track unreleased
+  fixes between tagged releases — carried over from M1.
 - **The corpus as CI:** run all three corpora on every PR and fail on regression; a documented process
   for growing the *validation* split without contaminating it (its whole value is that no guard was
   tuned against it). Property-based tests on `Vectors` (normalize/dot invariants) and the text

@@ -23,6 +23,16 @@ public data class CacheStats(
     public val verifierRejections: Long,
     /** Entries written through [SemanticCache.put] or [SemanticCache.getOrPut]. */
     public val writes: Long,
+    /**
+     * [guardRejections] broken down by the [dev.kmemo.guard.MatchGuard.name] that fired.
+     *
+     * The values sum to [guardRejections] — each guard-rejected miss is attributed to the single
+     * guard that vetoed it first, matching the order guards run in. Every configured guard is a key,
+     * so one that has never fired shows up as `0` rather than being absent: a guard stuck at `0` is
+     * either redundant for your traffic or ordered behind one that always rejects first, and only the
+     * breakdown tells you which. Empty when the cache runs with [dev.kmemo.guard.MatchGuards.none].
+     */
+    public val guardRejectionsByGuard: Map<String, Long> = emptyMap(),
 ) {
     /** Fraction of lookups served from cache, in `[0.0, 1.0]`. `0.0` when nothing has been looked up. */
     public val hitRate: Double

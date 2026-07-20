@@ -8,47 +8,51 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- `SubstitutionGuard` — rejects prompts identical but for one word, reading structure rather than
-  capitalization. It is what raised out-of-sample near-miss detection from 26% to about 70%.
-- `validation-corpus.json` — 153 pairs written blind, never tuned against, nine tenths lowercase.
-  With `near-miss-corpus.json` (tuned on) and `held-out-corpus.json`, the project now reports three
-  numbers and says which one to trust.
-- Request coalescing: concurrent `getOrPut` calls for the same prompt and scope wait for the first
-  instead of each calling the model. On by default, since a cold cache under load is exactly when
-  duplicate calls are most likely and most expensive.
-- `MeasurementUnit` — units carry the dimension they measure, so `UnitGuard` no longer reads a mass
-  appearing where a currency does as a swapped unit.
+- Fail-closed verifier semantics and `SemanticCache(verifierTimeout = …)` — a `Verifier` that throws
+  or exceeds the timeout now rejects the candidate (a `REJECTED_BY_VERIFIER` miss whose `detail` says
+  which), instead of propagating the error or serving an unconfirmed answer. `CancellationException`
+  still propagates, so cancellation is unaffected.
+- `CachingVerifier`, and the `Verifier.caching(…)` extension — memoizes verdicts per
+  `(query, cachedPrompt)`, bounded and optionally TTL'd, so a hot near miss is judged once rather than
+  on every lookup. A delegate that throws is never cached, so a transient outage cannot freeze a
+  rejection into the cache.
+- `SemanticCache.explain(prompt, scope)` — a read-only diagnostic returning a `CacheExplanation`: the
+  nearest candidates with *every* guard's verdict (not just the first rejection), and a `decision`
+  that says whether the threshold or a guard would stand in the way. It moves no counter, marks
+  nothing recently-used, and never runs the `Verifier` — the tool for "why wasn't this a hit?".
+- `CacheStats.guardRejectionsByGuard` — guard rejections broken down by `MatchGuard.name`, so a noisy
+  or silent guard is visible in production and not only in the corpus test. The values sum to
+  `guardRejections`, and every configured guard is a key, so one that never fires reads as `0` rather
+  than being absent.
 
 ### Changed
 
-- The marker guards (`NegationGuard`, `TemporalGuard`) require the rest of the prompt to match
-  before a keyword counts as evidence. A lone `not` or `current` was refusing genuine paraphrases —
-  "why can't I connect to the VPN" against "why is my connection to the VPN failing" — while
-  catching nothing out of sample.
-- `ScopeGuard` and `EntityGuard` reject a substitution, never an addition. `EntityGuard` also
-  recognises an acronym written out in full, so `GDPR` matches `General Data Protection Regulation`.
-- `DirectionGuard` distinguishes an asymmetric comparison (`is A better than B`) from a symmetric
-  selection (`which is better, A or B`), which reverses meaning only in the first case.
+- The API reference is now published to GitHub Pages with Dokka (`docs.yml`) and linked from the
+  README; the repository was renamed to `NaCode-Studios/Kmemo`, and the POM/SCM metadata, GitHub
+  Packages URL and CI badges were updated to the canonical location.
 
-- Aligned with the NaCode Studios library conventions: coordinates are `io.github.nacode-studios`,
-  the package is `dev.kmemo`, and the build tracks its public API with
-  binary-compatibility-validator (`./gradlew apiCheck`).
-
-## [0.1.0]
+## [0.1.0] - 2026-07-19
 
 First release. Core semantic cache, provider-agnostic, one transitive dependency.
 
 ### Added
 
 - `SemanticCache` — embed, search, threshold, guard, optionally verify. `getOrPut` embeds a prompt
-  once and reuses the vector for both the lookup and the write.
+  once and reuses the vector for both the lookup and the write. Concurrent `getOrPut` calls for the
+  same prompt and scope are coalesced: the first computes, the rest wait and are served its answer,
+  since a cold cache under load is exactly when duplicate calls are most likely and most expensive.
 - `Embedder` — bring your own embedding source; Kmemo ships none and depends on no provider SDK.
 - `CacheStore` — storage and nearest-neighbour SPI, with `InMemoryStore` as the default: bounded,
   LRU-evicted on confirmed hits, optional TTL, safe across coroutines.
-- Nine guards against false cache hits, all on by default: `NumericGuard`, `UnitGuard`,
-  `TemporalGuard`, `NegationGuard`, `AntonymGuard`, `EntityGuard`, `ScopeGuard`, `DirectionGuard`,
-  `LexicalDivergenceGuard`. `LengthRatioGuard` ships too but stays out of `standard()`, since terse
-  and verbose phrasings of the same question differ too much in length to judge that way.
+- Ten guards against false cache hits, all on by default: `NumericGuard`, `UnitGuard` (units carry
+  the dimension they measure via `MeasurementUnit`, so a mass appearing where a currency does is not
+  read as a swapped unit), `TemporalGuard`, `NegationGuard`, `AntonymGuard`, `EntityGuard` (which
+  also recognises an acronym written out in full, so `GDPR` matches `General Data Protection
+  Regulation`), `SubstitutionGuard` (rejects prompts identical but for one word, reading structure
+  rather than capitalization), `ScopeGuard`, `DirectionGuard` (distinguishes an asymmetric comparison
+  from a symmetric selection), and `LexicalDivergenceGuard`. `LengthRatioGuard` ships too but stays
+  out of `standard()`. The marker guards require the rest of the prompt to match before a keyword
+  counts as evidence, and the substitution guards reject a substitution, never an addition.
 - The `MatchGuards.standard()` / `strict()` / `none()` presets.
 - `Verifier` — optional final check on candidates that already cleared threshold and guards.
 - `ThresholdCalibrator` — sweeps thresholds over labelled prompt pairs and reports what each setting
@@ -56,8 +60,11 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
   rather than copied from someone else's.
 - Scopes — entries are partitioned, so one model's answers are never served to another's callers.
 - `CacheStats` — hit rate plus a breakdown of misses by cause.
-- A corpus of 109 labelled prompt pairs, checked on every build: 68 of 71 near misses rejected, 0 of
-  38 genuine paraphrases rejected.
+- Three labelled corpora, checked on every build: `near-miss-corpus.json` (109 pairs, tuned on),
+  `held-out-corpus.json` (128) and a blind `validation-corpus.json` (153, nine tenths lowercase,
+  never tuned against). Blind validation rejects 67% of near misses while keeping 88% of paraphrases.
+- Published to Maven Central and GitHub Packages under `io.github.nacode-studios` (package
+  `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
-[Unreleased]: https://github.com/NaCode-Studios/kmemo/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/NaCode-Studios/kmemo/releases/tag/v0.1.0
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/NaCode-Studios/Kmemo/releases/tag/v0.1.0

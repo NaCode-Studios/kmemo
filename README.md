@@ -2,10 +2,11 @@
 
 **A semantic cache for LLM calls on Kotlin/JVM — that refuses to serve you the wrong answer.**
 
-[![CI](https://github.com/NaCode-Studios/kmemo/actions/workflows/ci.yml/badge.svg)](https://github.com/NaCode-Studios/kmemo/actions/workflows/ci.yml)
+[![CI](https://github.com/NaCode-Studios/Kmemo/actions/workflows/ci.yml/badge.svg)](https://github.com/NaCode-Studios/Kmemo/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.nacode-studios/kmemo-core?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.nacode-studios/kmemo-core)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF.svg?logo=kotlin)](https://kotlinlang.org)
+[![API docs](https://img.shields.io/badge/API%20docs-Dokka-blue.svg)](https://nacode-studios.github.io/Kmemo/)
 
 An exact-match cache misses "how do I reverse a list in Python" when it has already answered "python
 list reverse". A semantic cache does not: it embeds the prompt, finds the closest one it has seen,
@@ -69,9 +70,6 @@ dependencies {
     implementation("io.github.nacode-studios:kmemo-core:0.1.0")
 }
 ```
-
-> **Not published yet.** `0.1.0` is unreleased. Until it ships, build it locally with
-> `./gradlew publishToMavenLocal` and add `mavenLocal()` to your repositories.
 
 You also need an embedding source. Any function from `String` to `FloatArray` will do.
 
@@ -141,6 +139,20 @@ val verifier = Verifier { query, cached, _ ->
     haiku.complete("Same correct answer? Reply YES or NO.\nA: $cached\nB: $query").startsWith("YES")
 }
 ```
+
+Wire it in with a timeout and verdict caching, so a slow or repeated check never costs more than it
+should:
+
+```kotlin
+val cache = SemanticCache(
+    embedder,
+    verifier = verifier.caching(ttl = 6.hours),   // judge each pair once, not on every lookup
+    verifierTimeout = 2.seconds,                   // and fail closed if it stalls
+)
+```
+
+If the verifier throws or times out, the candidate is **rejected**, never served — an answer it could
+not confirm is exactly what it exists to keep out.
 
 ### Calibrating the threshold
 
