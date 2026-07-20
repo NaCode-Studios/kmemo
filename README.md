@@ -1,4 +1,4 @@
-# kmemo
+# Kmemo
 
 **A semantic cache for LLM calls on Kotlin/JVM — that refuses to serve you the wrong answer.**
 
@@ -20,7 +20,7 @@ except for the part where it hands back the wrong one.
 Every mainstream embedding model scores that pair around 0.99. No threshold separates it from a
 genuine paraphrase, because on the similarity axis **the near miss is closer than most paraphrases
 are**. So a cache built on a threshold alone will tell someone that 250 dollars is 92 euros —
-quickly, with no error and nothing in the logs. kmemo treats that as the main event: similarity is
+quickly, with no error and nothing in the logs. Kmemo treats that as the main event: similarity is
 only the first filter, and candidates that clear it are read as text by a chain of guards looking for
 concrete evidence the answers must differ.
 
@@ -33,13 +33,13 @@ val cache = SemanticCache(
 val answer = cache.getOrPut(prompt) { llm.complete(it) }
 ```
 
-kmemo caches responses for embeddings you already have — `openAi.embed` above is your own embedding
-source; kmemo ships none and depends on no provider SDK.
+Kmemo caches responses for embeddings you already have — `openAi.embed` above is your own embedding
+source; Kmemo ships none and depends on no provider SDK.
 
 > **Status — early development.** The cache, the ten guards, the in-memory store and the threshold
 > calibrator are implemented and tested against a labelled corpus. APIs may change before `1.0`.
 
-## Why kmemo
+## Why Kmemo
 
 - **Guards against false hits** — ten lexical checks catch near misses a threshold cannot: swapped
   numbers, units, entities, time references, negation, flipped antonyms, reversed comparisons, a
@@ -226,7 +226,7 @@ The interesting engineering is in **not** over-rejecting:
 
 ### Correctness, measured
 
-kmemo ships **three** labelled corpora, and the separation between them is the point. Tuning a guard
+Kmemo ships **three** labelled corpora, and the separation between them is the point. Tuning a guard
 against a corpus and then quoting that corpus as evidence measures the tuning, not the guard.
 
 | Corpus | Pairs | Role |
@@ -304,4 +304,4 @@ Licensed under the [Apache License 2.0](LICENSE).
 
 ## Sponsor
 
-If kmemo is useful to you, consider [sponsoring NaCode Studios](https://github.com/sponsors/NaCode-Studios).
+If Kmemo is useful to you, consider [sponsoring NaCode Studios](https://github.com/sponsors/NaCode-Studios).

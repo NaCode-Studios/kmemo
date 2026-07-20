@@ -1,4 +1,4 @@
-# Contributing to kmemo
+# Contributing to Kmemo
 
 Thanks for your interest in contributing.
 

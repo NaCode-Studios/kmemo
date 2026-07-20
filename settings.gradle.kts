@@ -12,6 +12,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "kmemo"
+rootProject.name = "Kmemo"
 
 include(":kmemo-core")

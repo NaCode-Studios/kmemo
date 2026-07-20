@@ -42,7 +42,7 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 
 - `SemanticCache` — embed, search, threshold, guard, optionally verify. `getOrPut` embeds a prompt
   once and reuses the vector for both the lookup and the write.
-- `Embedder` — bring your own embedding source; kmemo ships none and depends on no provider SDK.
+- `Embedder` — bring your own embedding source; Kmemo ships none and depends on no provider SDK.
 - `CacheStore` — storage and nearest-neighbour SPI, with `InMemoryStore` as the default: bounded,
   LRU-evicted on confirmed hits, optional TTL, safe across coroutines.
 - Nine guards against false cache hits, all on by default: `NumericGuard`, `UnitGuard`,

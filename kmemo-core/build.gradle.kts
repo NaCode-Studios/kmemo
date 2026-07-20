@@ -48,7 +48,7 @@ mavenPublishing {
 
     coordinates("io.github.nacode-studios", "kmemo-core", version.toString())
     pom {
-        name.set("kmemo Core")
+        name.set("Kmemo Core")
         description.set(
             "Semantic cache for LLM calls on Kotlin/JVM, with guards against false cache hits.",
         )
