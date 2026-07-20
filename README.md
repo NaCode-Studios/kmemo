@@ -37,8 +37,9 @@ val answer = cache.getOrPut(prompt) { llm.complete(it) }
 Kmemo caches responses for embeddings you already have — `openAi.embed` above is your own embedding
 source; Kmemo ships none and depends on no provider SDK.
 
-> **Status — early development.** The cache, the ten guards, the in-memory store and the threshold
-> calibrator are implemented and tested against a labelled corpus. APIs may change before `1.0`.
+> **Status — `0.2`, early development.** Published to Maven Central; the cache, the ten guards, the
+> in-memory store, the threshold calibrator and an optional verifier are implemented and measured against
+> a labelled corpus. The API may change before `1.0`.
 
 ## Why Kmemo
 
@@ -280,18 +281,21 @@ Run it yourself:
 
 ## Roadmap
 
-**Now (`0.1.0`)** — `SemanticCache` with scopes, stats and typed misses; `Embedder` and `CacheStore`
-seams; ten guards plus an opt-in `LengthRatioGuard`; an optional `Verifier`; `InMemoryStore` with TTL
-and LRU; `ThresholdCalibrator`; three labelled corpora with a blind validation split. Built and
-tested; publishing to Maven Central is the next step.
+**Shipped (`0.2.0`)** — `SemanticCache` with scopes, stats and typed misses; `Embedder` and `CacheStore`
+seams; ten guards plus an opt-in `LengthRatioGuard`; `InMemoryStore` with TTL and LRU; `ThresholdCalibrator`;
+three labelled corpora with a blind validation split — all in `0.1.0`. `0.2.0` adds per-guard measurement
+(`guardRejectionsByGuard`, `explain(...)`) and the completed `Verifier` path (fail-closed semantics, verdict
+caching) for the near misses lexical rules cannot see. Both are on Maven Central and GitHub Packages.
 
-**Next** — publish `0.1.0`; per-guard measurement and a completed `Verifier` path for the near misses
-lexical rules cannot see; Redis and Postgres/pgvector stores behind the same `CacheStore` seam;
-resilience and observability (metrics, tracing) for a request path; framework integrations — a Spring
-AI `Advisor` and a LangChain4j wrapper (neither framework ships a semantic cache) — with a runnable
-demo; non-English vocabularies; and the road to `1.0`, with Kotlin Multiplatform after that.
+**Next (`0.3.0`)** — stores beyond memory: a shared store conformance suite (TCK), then Redis and
+Postgres / pgvector adapters behind the same `CacheStore` seam, and an ANN path for the in-memory store.
 
-See **[ROADMAP.md](ROADMAP.md)** for the full milestone plan (`M1`–`M18`).
+**Later** — resilience and observability (metrics, tracing) for a request path; framework integrations —
+a Spring AI `Advisor` and a LangChain4j wrapper (neither framework ships a semantic cache) — with a
+runnable demo; non-English vocabularies; and the road to `1.0`, with Kotlin Multiplatform after that.
+
+See **[ROADMAP.md](ROADMAP.md)** for the full milestone plan (`M1`–`M18`), and the shared
+**[roadmap conventions](ROADMAP-CONVENTIONS.md)**.
 
 ## Building and testing
 

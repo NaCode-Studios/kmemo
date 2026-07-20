@@ -10,19 +10,19 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- Fail-closed verifier semantics and `SemanticCache(verifierTimeout = …)` — a `Verifier` that throws
+- Fail-closed verifier semantics (M3) and `SemanticCache(verifierTimeout = …)` — a `Verifier` that throws
   or exceeds the timeout now rejects the candidate (a `REJECTED_BY_VERIFIER` miss whose `detail` says
   which), instead of propagating the error or serving an unconfirmed answer. `CancellationException`
   still propagates, so cancellation is unaffected.
-- `CachingVerifier`, and the `Verifier.caching(…)` extension — memoizes verdicts per
+- `CachingVerifier` and the `Verifier.caching(…)` extension (M3) — memoizes verdicts per
   `(query, cachedPrompt)`, bounded and optionally TTL'd, so a hot near miss is judged once rather than
   on every lookup. A delegate that throws is never cached, so a transient outage cannot freeze a
   rejection into the cache.
-- `SemanticCache.explain(prompt, scope)` — a read-only diagnostic returning a `CacheExplanation`: the
+- `SemanticCache.explain(prompt, scope)` (M2) — a read-only diagnostic returning a `CacheExplanation`: the
   nearest candidates with *every* guard's verdict (not just the first rejection), and a `decision`
   that says whether the threshold or a guard would stand in the way. It moves no counter, marks
   nothing recently-used, and never runs the `Verifier` — the tool for "why wasn't this a hit?".
-- `CacheStats.guardRejectionsByGuard` — guard rejections broken down by `MatchGuard.name`, so a noisy
+- `CacheStats.guardRejectionsByGuard` (M2) — guard rejections broken down by `MatchGuard.name`, so a noisy
   or silent guard is visible in production and not only in the corpus test. The values sum to
   `guardRejections`, and every configured guard is a key, so one that never fires reads as `0` rather
   than being absent.
