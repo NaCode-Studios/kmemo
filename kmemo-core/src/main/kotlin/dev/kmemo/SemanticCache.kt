@@ -117,6 +117,35 @@ public class SemanticCache(
         (lookup(prompt, scope) as? CacheLookup.Hit)?.response
 
     /**
+     * Explains how [prompt] would be decided in [scope], without changing anything.
+     *
+     * A read-only companion to [lookup] for tuning. It embeds the prompt (one [Embedder.embed] call)
+     * and pulls the same nearest candidates, then reports each one's similarity and *every* guard's
+     * verdict — not stopping at the first rejection, the way a real lookup does. It does **not** touch
+     * [stats], does **not** mark any entry recently-used, and does **not** run the [Verifier]: a
+     * diagnostic that moved the counters you are reading, or spent a model call, would defeat its own
+     * purpose.
+     *
+     * Reach for it when a hit you expected did not happen. [CacheExplanation.decision] says whether
+     * the threshold or a guard stood in the way, and [CandidateTrace.guardVerdicts] says which guard
+     * and why — across every candidate, so a usable second-nearest entry is visible too.
+     */
+    public suspend fun explain(prompt: String, scope: String = DEFAULT_SCOPE): CacheExplanation {
+        val embedding = embed(prompt)
+        val traces = store.search(scope, embedding, candidates).map { scored ->
+            val verdicts = LinkedHashMap<String, GuardVerdict>(guards.size)
+            for (guard in guards) verdicts[guard.name] = guard.evaluate(prompt, scored.entry.prompt)
+            CandidateTrace(
+                prompt = scored.entry.prompt,
+                similarity = scored.similarity,
+                aboveThreshold = scored.similarity >= threshold,
+                guardVerdicts = verdicts,
+            )
+        }
+        return CacheExplanation(prompt, scope, threshold, traces)
+    }
+
+    /**
      * Caches [response] as the answer to [prompt] and returns the new entry's id.
      *
      * Costs one [Embedder.embed] call. Prefer [getOrPut], which embeds once for the lookup and the

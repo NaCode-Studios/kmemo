@@ -5,8 +5,10 @@ import dev.kmemo.fixtures.CorpusPair
 import dev.kmemo.fixtures.HELD_OUT_CORPUS
 import dev.kmemo.fixtures.TUNED_CORPUS
 import dev.kmemo.fixtures.VALIDATION_CORPUS
+import java.io.File
 import java.util.Locale
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -90,6 +92,31 @@ class CorpusTest {
         println("The tuned corpus is in-sample: the guards were fitted against it. Only the held-out")
         println("numbers describe what the guards do to prompts nobody tuned against.")
         println()
+    }
+
+    /**
+     * Writes the same numbers the report above prints, as JSON, for CI to diff across commits.
+     *
+     * Asserts structure, not quality — the near-miss and paraphrase *floors* are the regression tests
+     * above. Here we only check the artifact is well-formed and internally consistent.
+     */
+    @Test
+    fun `emit a machine-readable guard report`() {
+        val corpora = listOf(TUNED_CORPUS, HELD_OUT_CORPUS, VALIDATION_CORPUS)
+        val report = GuardReport.of(MatchGuards.standard(), corpora)
+
+        assertEquals(corpora.map { it.name }, report.corpora.map { it.corpus })
+        for (corpus in report.corpora) {
+            assertEquals(MatchGuards.standard().map { it.name }, corpus.perGuard.map { it.guard })
+            assertEquals(corpus.pairs, corpus.nearMisses + corpus.paraphrases)
+            assertTrue(corpus.nearMissesRejected in 0..corpus.nearMisses)
+            assertTrue(corpus.paraphrasesKept in 0..corpus.paraphrases)
+        }
+
+        val out = File("build/reports/guards/guard-report.json")
+        out.parentFile.mkdirs()
+        out.writeText(report.toJsonString())
+        assertTrue(out.exists() && out.length() > 0, "expected a report at ${out.absolutePath}")
     }
 
     private fun report(corpus: Corpus) {

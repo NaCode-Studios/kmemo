@@ -4,6 +4,7 @@ import dev.kmemo.fixtures.ConceptEmbedder
 import dev.kmemo.fixtures.CountingEmbedder
 import dev.kmemo.fixtures.FixedEmbedder
 import dev.kmemo.fixtures.HashingEmbedder
+import dev.kmemo.guard.GuardVerdict
 import dev.kmemo.guard.MatchGuards
 import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.CompletableDeferred
@@ -13,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -207,6 +209,45 @@ class SemanticCacheTest {
         cache.lookup("Convert 250 USD to EUR") // served now: nothing guards it
 
         assertTrue(cache.stats().guardRejectionsByGuard.isEmpty())
+    }
+
+    @Test
+    fun `explain traces every guard verdict and changes nothing`() = runTest {
+        val cache = SemanticCache(ConceptEmbedder())
+        cache.put("Convert 100 USD to EUR", "about 92 EUR")
+
+        val explanation = cache.explain("Convert 250 USD to EUR")
+
+        assertEquals(MissReason.REJECTED_BY_GUARD, explanation.decision)
+        val top = explanation.candidates.first()
+        assertEquals("Convert 100 USD to EUR", top.prompt)
+        assertTrue(top.aboveThreshold, "the guard, not the threshold, is what refuses this")
+        assertFalse(top.wouldServe)
+        // Every guard is traced, in order — an explanation does not stop at the first to object, the
+        // way a lookup does, because when tuning you want to see all of them.
+        assertEquals(MatchGuards.standard().map { it.name }, top.guardVerdicts.keys.toList())
+        assertIs<GuardVerdict.Reject>(top.guardVerdicts["numeric"])
+        assertTrue("numeric" in top.rejectingGuards)
+
+        // A diagnostic must not move the counters it exists to help you read.
+        val stats = cache.stats()
+        assertEquals(0, stats.lookups)
+        assertEquals(0, stats.guardRejections)
+        assertTrue(stats.guardRejectionsByGuard.values.all { it == 0L })
+    }
+
+    @Test
+    fun `explain reports an empty scope and a servable candidate`() = runTest {
+        val cache = SemanticCache(HashingEmbedder())
+
+        val empty = cache.explain("anything")
+        assertEquals(MissReason.EMPTY_SCOPE, empty.decision)
+        assertTrue(empty.candidates.isEmpty())
+
+        cache.put("How do I reverse a list?", "answer")
+        val servable = cache.explain("How do I reverse a list?")
+        assertNull(servable.decision) // a null decision means it would be a hit
+        assertTrue(servable.candidates.first().wouldServe)
     }
 
     @Test

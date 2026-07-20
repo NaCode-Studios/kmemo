@@ -8,6 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `SemanticCache.explain(prompt, scope)` — a read-only diagnostic returning a `CacheExplanation`: the
+  nearest candidates with *every* guard's verdict (not just the first rejection), and a `decision`
+  that says whether the threshold or a guard would stand in the way. It moves no counter, marks
+  nothing recently-used, and never runs the `Verifier` — the tool for "why wasn't this a hit?".
 - `CacheStats.guardRejectionsByGuard` — guard rejections broken down by `MatchGuard.name`, so a noisy
   or silent guard is visible in production and not only in the corpus test. The values sum to
   `guardRejections`, and every configured guard is a key, so one that never fires reads as `0` rather
