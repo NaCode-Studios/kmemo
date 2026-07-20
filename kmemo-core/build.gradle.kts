@@ -53,7 +53,7 @@ mavenPublishing {
             "Semantic cache for LLM calls on Kotlin/JVM, with guards against false cache hits.",
         )
         inceptionYear.set("2026")
-        url.set("https://github.com/NaCode-Studios/kmemo")
+        url.set("https://github.com/NaCode-Studios/Kmemo")
         licenses {
             license {
                 name.set("The Apache License, Version 2.0")
@@ -68,9 +68,9 @@ mavenPublishing {
             }
         }
         scm {
-            url.set("https://github.com/NaCode-Studios/kmemo")
-            connection.set("scm:git:https://github.com/NaCode-Studios/kmemo.git")
-            developerConnection.set("scm:git:ssh://git@github.com/NaCode-Studios/kmemo.git")
+            url.set("https://github.com/NaCode-Studios/Kmemo")
+            connection.set("scm:git:https://github.com/NaCode-Studios/Kmemo.git")
+            developerConnection.set("scm:git:ssh://git@github.com/NaCode-Studios/Kmemo.git")
         }
     }
 }
@@ -80,7 +80,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/NaCode-Studios/kmemo")
+            url = uri("https://maven.pkg.github.com/NaCode-Studios/Kmemo")
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")

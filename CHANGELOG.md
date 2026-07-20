@@ -37,6 +37,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- The API reference is now published to GitHub Pages with Dokka (`docs.yml`) and linked from the
+  README; the repository was renamed to `NaCode-Studios/Kmemo`, and the POM/SCM metadata, GitHub
+  Packages URL and CI badges were updated to the canonical location.
 - The marker guards (`NegationGuard`, `TemporalGuard`) require the rest of the prompt to match
   before a keyword counts as evidence. A lone `not` or `current` was refusing genuine paraphrases —
   "why can't I connect to the VPN" against "why is my connection to the VPN failing" — while
@@ -75,5 +78,5 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 - A corpus of 109 labelled prompt pairs, checked on every build: 68 of 71 near misses rejected, 0 of
   38 genuine paraphrases rejected.
 
-[Unreleased]: https://github.com/NaCode-Studios/kmemo/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/NaCode-Studios/kmemo/releases/tag/v0.1.0
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/NaCode-Studios/Kmemo/releases/tag/v0.1.0
