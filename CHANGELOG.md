@@ -8,6 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `CacheStats.guardRejectionsByGuard` — guard rejections broken down by `MatchGuard.name`, so a noisy
+  or silent guard is visible in production and not only in the corpus test. The values sum to
+  `guardRejections`, and every configured guard is a key, so one that never fires reads as `0` rather
+  than being absent.
 - `SubstitutionGuard` — rejects prompts identical but for one word, reading structure rather than
   capitalization. It is what raised out-of-sample near-miss detection from 26% to about 70%.
 - `validation-corpus.json` — 153 pairs written blind, never tuned against, nine tenths lowercase.

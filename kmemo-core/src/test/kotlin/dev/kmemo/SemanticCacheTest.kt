@@ -186,6 +186,30 @@ class SemanticCacheTest {
     }
 
     @Test
+    fun `guard rejections are attributed to the guard that fired`() = runTest {
+        val cache = SemanticCache(ConceptEmbedder())
+        cache.put("Convert 100 USD to EUR", "about 92 EUR")
+        cache.lookup("Convert 250 USD to EUR") // the numeric guard, not the threshold, refuses this
+
+        val byGuard = cache.stats().guardRejectionsByGuard
+        assertEquals(1L, byGuard["numeric"])
+        // Every configured guard is a key, so a guard that never fired reads as 0 rather than being
+        // absent — the distinction you need when hunting a guard that has gone silent.
+        assertEquals(MatchGuards.standard().map { it.name }.toSet(), byGuard.keys)
+        // The breakdown is a partition of the aggregate, never a separate tally that can drift.
+        assertEquals(cache.stats().guardRejections, byGuard.values.sum())
+    }
+
+    @Test
+    fun `with no guards the per-guard breakdown is empty`() = runTest {
+        val cache = SemanticCache(ConceptEmbedder(), guards = MatchGuards.none())
+        cache.put("Convert 100 USD to EUR", "about 92 EUR")
+        cache.lookup("Convert 250 USD to EUR") // served now: nothing guards it
+
+        assertTrue(cache.stats().guardRejectionsByGuard.isEmpty())
+    }
+
+    @Test
     fun `an entry can be invalidated by the id its hit reported`() = runTest {
         val cache = SemanticCache(HashingEmbedder())
         cache.put("How do I reverse a list?", "answer")

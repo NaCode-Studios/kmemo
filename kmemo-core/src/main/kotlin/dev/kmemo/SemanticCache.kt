@@ -96,6 +96,12 @@ public class SemanticCache(
     private val verifierRejectionCount = AtomicLong()
     private val writeCount = AtomicLong()
 
+    // One counter per guard, fixed at construction so no entry is ever inserted concurrently — the
+    // hot path only ever does an atomic increment on a key that already exists. Guards that share a
+    // name (unusual) share a counter, which keeps the per-guard sum equal to [guardRejectionCount].
+    private val guardRejectionCountersByName: Map<String, AtomicLong> =
+        guards.associate { it.name to AtomicLong() }
+
     /**
      * Looks up [prompt] and reports the full outcome, including why a miss was a miss.
      *
@@ -206,6 +212,7 @@ public class SemanticCache(
             guardRejections = guardRejectionCount.get(),
             verifierRejections = verifierRejectionCount.get(),
             writes = writeCount.get(),
+            guardRejectionsByGuard = guardRejectionCountersByName.mapValues { it.value.get() },
         )
     }
 
@@ -240,7 +247,14 @@ public class SemanticCache(
 
             val rejection = firstRejection(prompt, scored.entry.prompt)
             if (rejection != null) {
-                if (refusal == null) refusal = Refusal(MissReason.REJECTED_BY_GUARD, scored, rejection)
+                if (refusal == null) {
+                    refusal = Refusal(
+                        MissReason.REJECTED_BY_GUARD,
+                        scored,
+                        "${rejection.guardName}: ${rejection.reason}",
+                        rejection.guardName,
+                    )
+                }
                 continue
             }
 
@@ -250,6 +264,7 @@ public class SemanticCache(
                         MissReason.REJECTED_BY_VERIFIER,
                         scored,
                         "verifier rejected this candidate",
+                        guardName = null,
                     )
                 }
                 continue
@@ -266,19 +281,30 @@ public class SemanticCache(
 
         if (counted) {
             when (refusal.reason) {
-                MissReason.REJECTED_BY_GUARD -> guardRejectionCount.incrementAndGet()
+                MissReason.REJECTED_BY_GUARD -> {
+                    guardRejectionCount.incrementAndGet()
+                    refusal.guardName?.let { guardRejectionCountersByName[it]?.incrementAndGet() }
+                }
                 else -> verifierRejectionCount.incrementAndGet()
             }
         }
         return miss(refusal.reason, refusal.candidate, refusal.detail)
     }
 
-    private class Refusal(val reason: MissReason, val candidate: ScoredEntry, val detail: String)
+    private class Refusal(
+        val reason: MissReason,
+        val candidate: ScoredEntry,
+        val detail: String,
+        // The guard that fired, for the per-guard breakdown; null for a verifier refusal.
+        val guardName: String?,
+    )
 
-    private fun firstRejection(prompt: String, candidatePrompt: String): String? {
+    private class GuardRejection(val guardName: String, val reason: String)
+
+    private fun firstRejection(prompt: String, candidatePrompt: String): GuardRejection? {
         for (guard in guards) {
             val verdict = guard.evaluate(prompt, candidatePrompt)
-            if (verdict is GuardVerdict.Reject) return "${guard.name}: ${verdict.reason}"
+            if (verdict is GuardVerdict.Reject) return GuardRejection(guard.name, verdict.reason)
         }
         return null
     }
