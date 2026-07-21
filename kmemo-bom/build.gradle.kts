@@ -13,6 +13,10 @@ dependencies {
         api(project(":kmemo-store-hnsw"))
         api(project(":kmemo-micrometer"))
         api(project(":kmemo-slf4j"))
+        api(project(":kmemo-spring-boot-starter"))
+        api(project(":kmemo-spring-ai"))
+        api(project(":kmemo-langchain4j"))
+        api(project(":kmemo-ktor"))
     }
 }
 

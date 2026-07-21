@@ -1,0 +1,12 @@
+# Redis Stack bundles RediSearch, which kmemo-store-redis uses for vector KNN search.
+# Bring it up, then run the demo against it:
+#
+#   docker compose -f examples/docker-compose.yml up -d
+#   KMEMO_REDIS_URL=redis://localhost:6379 ./gradlew :examples:run
+#
+services:
+  redis:
+    image: redis/redis-stack:7.4.0-v0
+    ports:
+      - "6379:6379"   # Redis
+      - "8001:8001"   # RedisInsight UI (optional)
