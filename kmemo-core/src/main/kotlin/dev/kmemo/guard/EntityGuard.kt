@@ -25,13 +25,15 @@ package dev.kmemo.guard
  */
 public class EntityGuard(
     private val stopwords: Set<String> = Vocabulary.STOPWORDS,
+    private val sentenceOpeners: Set<String> = Vocabulary.SENTENCE_OPENERS,
+    private val nonEntityCapitals: Set<String> = Vocabulary.NON_ENTITY_CAPITALS,
 ) : MatchGuard {
 
     override val name: String get() = "entity"
 
     override fun evaluate(query: String, candidate: String): GuardVerdict {
-        val queryEntities = Text.entityTokens(query)
-        val candidateEntities = Text.entityTokens(candidate)
+        val queryEntities = Text.entityTokens(query, sentenceOpeners, nonEntityCapitals)
+        val candidateEntities = Text.entityTokens(candidate, sentenceOpeners, nonEntityCapitals)
         if (queryEntities.isEmpty() || candidateEntities.isEmpty()) return GuardVerdict.Accept
 
         val onlyInQuery = notSpelledOutIn(queryEntities - candidateEntities, candidate)

@@ -1,5 +1,7 @@
 package dev.kmemo.guard
 
+import java.util.Locale
+
 /**
  * Ready-made guard sets for [dev.kmemo.SemanticCache].
  *
@@ -10,27 +12,50 @@ package dev.kmemo.guard
  * | [standard]  | Default. Every guard that pays for itself, tuned to reject no genuine paraphrase.  |
  * | [strict]    | A wrong answer is expensive. Trades hit rate for margin.                           |
  * | [none]      | Similarity alone. Only with a [dev.kmemo.Verifier], or a private benchmark. |
+ *
+ * [standard] takes an optional [GuardVocabulary] or [Locale], so the same guards run against another
+ * language's markers — see [Vocabularies] for the packs that ship.
  */
 public object MatchGuards {
 
     /**
-     * The default set: one guard per way a near-miss slips past a similarity threshold.
+     * The default set: one guard per way a near-miss slips past a similarity threshold, wired to the
+     * English [GuardVocabulary].
      *
      * Ordered cheapest and most decisive first, since [dev.kmemo.SemanticCache] stops at
      * the first rejection.
      */
-    public fun standard(): List<MatchGuard> = listOf(
+    public fun standard(): List<MatchGuard> = standard(GuardVocabulary.ENGLISH)
+
+    /**
+     * [standard], but reading every marker from [vocabulary] — the way to run the guards against a
+     * non-English language, or a customized marker set. [NumericGuard] is language-agnostic and takes
+     * no markers; every other guard is fed from the pack.
+     */
+    public fun standard(vocabulary: GuardVocabulary): List<MatchGuard> = listOf(
         NumericGuard(),
-        UnitGuard(),
-        TemporalGuard(),
-        NegationGuard(),
-        AntonymGuard(),
-        EntityGuard(),
-        SubstitutionGuard(),
-        ScopeGuard(),
-        DirectionGuard(),
-        LexicalDivergenceGuard(),
+        UnitGuard(vocabulary.units),
+        TemporalGuard(vocabulary.temporalMarkers, vocabulary.stopwords),
+        NegationGuard(vocabulary.negationMarkers, vocabulary.stopwords),
+        AntonymGuard(vocabulary.antonyms),
+        EntityGuard(vocabulary.stopwords, vocabulary.sentenceOpeners, vocabulary.nonEntityCapitals),
+        SubstitutionGuard(stopwords = vocabulary.stopwords, units = vocabulary.units),
+        ScopeGuard(vocabulary.scopeMarkers),
+        DirectionGuard(vocabulary.directionalCues, vocabulary.stopwords),
+        LexicalDivergenceGuard(stopwords = vocabulary.stopwords),
     )
+
+    /**
+     * [standard] for a [locale]'s language, using the shipped [Vocabularies] pack.
+     *
+     * ```kotlin
+     * val cache = SemanticCache(embedder, guards = MatchGuards.standard(Locale.ITALIAN))
+     * ```
+     *
+     * @throws IllegalArgumentException if no pack ships for the locale's language — see
+     *   [Vocabularies.forLocale] for the supported set. Pass a [GuardVocabulary] directly to use your own.
+     */
+    public fun standard(locale: Locale): List<MatchGuard> = standard(Vocabularies.forLocale(locale))
 
     /**
      * [standard] with the tolerant edges pulled in: prompts must share meaningfully more wording,

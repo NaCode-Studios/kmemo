@@ -1,0 +1,11 @@
+public final class dev/kmemo/springai/KmemoAdvisor : org/springframework/ai/chat/client/advisor/api/CallAdvisor, org/springframework/ai/chat/client/advisor/api/StreamAdvisor {
+	public fun <init> (Ldev/kmemo/SemanticCache;)V
+	public fun <init> (Ldev/kmemo/SemanticCache;I)V
+	public fun <init> (Ldev/kmemo/SemanticCache;ILkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Ldev/kmemo/SemanticCache;ILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun adviseCall (Lorg/springframework/ai/chat/client/ChatClientRequest;Lorg/springframework/ai/chat/client/advisor/api/CallAdvisorChain;)Lorg/springframework/ai/chat/client/ChatClientResponse;
+	public fun adviseStream (Lorg/springframework/ai/chat/client/ChatClientRequest;Lorg/springframework/ai/chat/client/advisor/api/StreamAdvisorChain;)Lreactor/core/publisher/Flux;
+	public fun getName ()Ljava/lang/String;
+	public fun getOrder ()I
+}
+

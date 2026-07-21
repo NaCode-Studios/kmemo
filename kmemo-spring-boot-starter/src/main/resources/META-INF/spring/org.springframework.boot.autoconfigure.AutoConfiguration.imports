@@ -1,0 +1,2 @@
+dev.kmemo.spring.KmemoAutoConfiguration
+dev.kmemo.spring.KmemoMetricsAutoConfiguration

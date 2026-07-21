@@ -1,0 +1,25 @@
+public class dev/kmemo/spring/KmemoAutoConfiguration {
+	public fun <init> ()V
+	public fun kmemoCacheStore ()Ldev/kmemo/CacheStore;
+	public fun semanticCache (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;Ldev/kmemo/spring/KmemoProperties;Lorg/springframework/beans/factory/ObjectProvider;Lorg/springframework/beans/factory/ObjectProvider;)Ldev/kmemo/SemanticCache;
+}
+
+public class dev/kmemo/spring/KmemoMetricsAutoConfiguration {
+	public fun <init> ()V
+	public fun kmemoMetrics ()Ldev/kmemo/micrometer/KmemoMetrics;
+}
+
+public final class dev/kmemo/spring/KmemoProperties {
+	public fun <init> ()V
+	public final fun getCandidates ()I
+	public final fun getCoalesceConcurrentMisses ()Z
+	public final fun getNegativeCacheSize ()I
+	public final fun getNegativeCacheTtl ()Ljava/time/Duration;
+	public final fun getThreshold ()D
+	public final fun setCandidates (I)V
+	public final fun setCoalesceConcurrentMisses (Z)V
+	public final fun setNegativeCacheSize (I)V
+	public final fun setNegativeCacheTtl (Ljava/time/Duration;)V
+	public final fun setThreshold (D)V
+}
+

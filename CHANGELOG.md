@@ -6,6 +6,75 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-22
+
+`0.6.0` is the **Tier 4 "ecosystem & adoption"** release: meet JVM developers inside the frameworks they
+already use — where no semantic cache ships today — and give them something runnable.
+
+### Added
+
+- Spring Boot starter (M13): a new `kmemo-spring-boot-starter` module. Auto-configures a `SemanticCache`
+  bean the moment an `Embedder` bean is present, bound from `kmemo.*` properties; the store defaults to
+  `InMemoryStore` but a user `CacheStore` bean wins, and `Verifier` / `CacheListener` beans are attached.
+  A separate metrics auto-config, gated on `kmemo-micrometer` being on the classpath, registers a
+  `KmemoMetrics` bean — at once a cache listener and an Actuator `MeterBinder`.
+- Spring AI advisor (M13): a new `kmemo-spring-ai` module — `KmemoAdvisor`, a caching `Advisor` for
+  Spring AI's `ChatClient`. A hit short-circuits the chain and serves the cached answer; a miss calls the
+  model, caches the reply text, and returns the model's real response untouched. Guards included;
+  streaming passes through. Verified against the Spring AI 1.0.0 advisor API.
+- LangChain4j integration (M14): a new `kmemo-langchain4j` module — `CachingChatModel`, a `ChatModel`
+  that puts a `SemanticCache` in front of another model. The cache key is the whole conversation, so a
+  question after a different exchange cannot be served the earlier answer; non-text / tool requests pass
+  through uncached. Verified against the LangChain4j 1.0.1 API.
+- Ktor plugin (M14): a new `kmemo-ktor` module — a `Kmemo` server plugin (`install(Kmemo) { cache = … }`)
+  that exposes the cache to route handlers, with a `call.getOrPut(…)` convenience for caching an LLM call
+  in one line.
+- Runnable demo (M14): a new `examples/` module — `./gradlew :examples:run` warms an FAQ and shows a
+  paraphrase served from cache, a numeric near-miss refused by the guard, and an unrelated question
+  missing on threshold. Runs with no API key (a local embedder); `KMEMO_REDIS_URL` switches it to the
+  Redis store, with a `docker-compose.yml` included.
+- Write-up (M14): `docs/blog/your-semantic-cache-has-a-false-hit-problem.md`, on the false-hit problem
+  and the guards, built around the honest measured numbers.
+
+### Changed
+
+- `kmemo-bom` now also constrains the four ecosystem modules (`kmemo-spring-boot-starter`,
+  `kmemo-spring-ai`, `kmemo-langchain4j`, `kmemo-ktor`).
+
+## [0.5.0] - 2026-07-21
+
+`0.5.0` is the **Tier 3 "DX & reach"** release: lower the friction from "interesting" to "in my service
+by lunch," and make the guards usable outside English.
+
+### Added
+
+- `catching { }` (M11): a coroutine-safe `Result` wrapper — like `runCatching`, but it re-throws
+  `CancellationException` (and `Error`s) instead of capturing them, so structured concurrency still
+  works. The exception / `null` style stays primary across kmemo.
+- Typed responses (M11): a `ResponseCodec<T>` seam and a `getOrPut(prompt, codec) { … }` overload that
+  caches a **structured** value — a parsed object, a tool-call — as the text the store keeps, decoding
+  it on a hit. No serialization library lands on the core classpath; you bring the codec.
+- Streaming responses (M11): `getOrPutStreaming(prompt) { … }` returns a `Flow<String>`. On a hit it
+  replays the assembled answer; on a miss it passes the upstream chunks through while accumulating them,
+  and caches the text **only if the stream completes normally** — a partial or failed stream caches
+  nothing.
+- Config DSL (M11): `semanticCache(embedder) { … }` over a `SemanticCacheBuilder`, so a cache that sets
+  a few of the constructor's options reads by name instead of threading past the rest.
+- BOM (M11): a new `kmemo-bom` (`java-platform`) module — import it once and depend on any kmemo
+  artifact without repeating the version.
+- Multilingual guard packs (M12): a `GuardVocabulary` bundle and `MatchGuards.standard(vocabulary)` /
+  `standard(locale)`, plus curated, conservative packs for **Italian, Spanish, German and French** in
+  `Vocabularies` (negation, antonyms, temporal / scope / directional markers, and local unit spellings
+  aliased to the vetted canonicals). `forLocale(Locale)` resolves by language code and fails loudly for
+  an unsupported one. Each pack is measured against a localized near-miss corpus — near-misses caught,
+  paraphrases kept — not asserted.
+
+### Changed
+
+- `EntityGuard` and `Text.entityTokens` now take the sentence-opener and non-entity-capital sets as
+  parameters (defaulting to the English `Vocabulary`), so the entity guard is language-swappable like
+  the rest. `Vocabulary.NON_ENTITY_CAPITALS` is now public. Existing English callers are unaffected.
+
 ## [0.4.0] - 2026-07-21
 
 `0.4.0` is the **Tier 2 "production reliability & observability"** release: predictable failure

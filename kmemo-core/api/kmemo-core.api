@@ -181,6 +181,10 @@ public final class dev/kmemo/CandidateTrace {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/kmemo/CatchingKt {
+	public static final fun catching (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+}
+
 public final class dev/kmemo/EmbedFailurePolicy : java/lang/Enum {
 	public static final field FALL_BACK_TO_COMPUTE Ldev/kmemo/EmbedFailurePolicy;
 	public static final field PROPAGATE Ldev/kmemo/EmbedFailurePolicy;
@@ -230,6 +234,11 @@ public final class dev/kmemo/MissReason : java/lang/Enum {
 	public static fun values ()[Ldev/kmemo/MissReason;
 }
 
+public abstract interface class dev/kmemo/ResponseCodec {
+	public abstract fun decode (Ljava/lang/String;)Ljava/lang/Object;
+	public abstract fun encode (Ljava/lang/Object;)Ljava/lang/String;
+}
+
 public final class dev/kmemo/RetryingEmbedder : dev/kmemo/Embedder {
 	public static final field Companion Ldev/kmemo/RetryingEmbedder$Companion;
 	public static final field DEFAULT_FACTOR D
@@ -272,10 +281,14 @@ public final class dev/kmemo/SemanticCache {
 	public static synthetic fun explain$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun get (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun get$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun getOrPut (Ljava/lang/String;Ldev/kmemo/ResponseCodec;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun getOrPut (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun getOrPut$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ldev/kmemo/ResponseCodec;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static synthetic fun getOrPut$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun getOrPutAll (Ljava/util/List;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun getOrPutAll$default (Ldev/kmemo/SemanticCache;Ljava/util/List;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun getOrPutStreaming (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun getOrPutStreaming$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun invalidate (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun lookup (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun lookup$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
@@ -288,6 +301,44 @@ public final class dev/kmemo/SemanticCache {
 }
 
 public final class dev/kmemo/SemanticCache$Companion {
+}
+
+public final class dev/kmemo/SemanticCacheBuilder {
+	public fun <init> (Ldev/kmemo/Embedder;)V
+	public final fun build ()Ldev/kmemo/SemanticCache;
+	public final fun getCandidates ()I
+	public final fun getClock ()Ljava/time/Clock;
+	public final fun getCoalesceConcurrentMisses ()Z
+	public final fun getEmbedFailurePolicy ()Ldev/kmemo/EmbedFailurePolicy;
+	public final fun getGuards ()Ljava/util/List;
+	public final fun getListeners ()Ljava/util/List;
+	public final fun getNegativeCacheSize ()I
+	public final fun getNegativeCacheTtl-FghU774 ()Lkotlin/time/Duration;
+	public final fun getStore ()Ldev/kmemo/CacheStore;
+	public final fun getThreshold ()D
+	public final fun getVerifier ()Ldev/kmemo/Verifier;
+	public final fun getVerifierTimeout-FghU774 ()Lkotlin/time/Duration;
+	public final fun getWriteBehindCapacity ()I
+	public final fun getWriteBehindScope ()Lkotlinx/coroutines/CoroutineScope;
+	public final fun setCandidates (I)V
+	public final fun setClock (Ljava/time/Clock;)V
+	public final fun setCoalesceConcurrentMisses (Z)V
+	public final fun setEmbedFailurePolicy (Ldev/kmemo/EmbedFailurePolicy;)V
+	public final fun setGuards (Ljava/util/List;)V
+	public final fun setListeners (Ljava/util/List;)V
+	public final fun setNegativeCacheSize (I)V
+	public final fun setNegativeCacheTtl-BwNAW2A (Lkotlin/time/Duration;)V
+	public final fun setStore (Ldev/kmemo/CacheStore;)V
+	public final fun setThreshold (D)V
+	public final fun setVerifier (Ldev/kmemo/Verifier;)V
+	public final fun setVerifierTimeout-BwNAW2A (Lkotlin/time/Duration;)V
+	public final fun setWriteBehindCapacity (I)V
+	public final fun setWriteBehindScope (Lkotlinx/coroutines/CoroutineScope;)V
+}
+
+public final class dev/kmemo/SemanticCacheBuilderKt {
+	public static final fun semanticCache (Ldev/kmemo/Embedder;Lkotlin/jvm/functions/Function1;)Ldev/kmemo/SemanticCache;
+	public static synthetic fun semanticCache$default (Ldev/kmemo/Embedder;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/kmemo/SemanticCache;
 }
 
 public final class dev/kmemo/Vectors {
@@ -410,8 +461,8 @@ public final class dev/kmemo/guard/DirectionGuard : dev/kmemo/guard/MatchGuard {
 
 public final class dev/kmemo/guard/EntityGuard : dev/kmemo/guard/MatchGuard {
 	public fun <init> ()V
-	public fun <init> (Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
 	public fun getName ()Ljava/lang/String;
 }
@@ -435,6 +486,38 @@ public final class dev/kmemo/guard/GuardVerdict$Reject : dev/kmemo/guard/GuardVe
 	public final fun getReason ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/GuardVocabulary {
+	public static final field Companion Ldev/kmemo/guard/GuardVocabulary$Companion;
+	public fun <init> (Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Map;)V
+	public final fun component1 ()Ljava/util/Set;
+	public final fun component2 ()Ljava/util/Set;
+	public final fun component3 ()Ljava/util/Set;
+	public final fun component4 ()Ljava/util/Set;
+	public final fun component5 ()Ljava/util/Set;
+	public final fun component6 ()Ljava/util/Set;
+	public final fun component7 ()Ljava/util/Set;
+	public final fun component8 ()Ljava/util/Set;
+	public final fun component9 ()Ljava/util/Map;
+	public final fun copy (Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Map;)Ldev/kmemo/guard/GuardVocabulary;
+	public static synthetic fun copy$default (Ldev/kmemo/guard/GuardVocabulary;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;Ljava/util/Map;ILjava/lang/Object;)Ldev/kmemo/guard/GuardVocabulary;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAntonyms ()Ljava/util/Set;
+	public final fun getDirectionalCues ()Ljava/util/Set;
+	public final fun getNegationMarkers ()Ljava/util/Set;
+	public final fun getNonEntityCapitals ()Ljava/util/Set;
+	public final fun getScopeMarkers ()Ljava/util/Set;
+	public final fun getSentenceOpeners ()Ljava/util/Set;
+	public final fun getStopwords ()Ljava/util/Set;
+	public final fun getTemporalMarkers ()Ljava/util/Set;
+	public final fun getUnits ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/GuardVocabulary$Companion {
+	public final fun getENGLISH ()Ldev/kmemo/guard/GuardVocabulary;
 }
 
 public final class dev/kmemo/guard/LengthRatioGuard : dev/kmemo/guard/MatchGuard {
@@ -473,6 +556,8 @@ public final class dev/kmemo/guard/MatchGuards {
 	public static final field INSTANCE Ldev/kmemo/guard/MatchGuards;
 	public final fun none ()Ljava/util/List;
 	public final fun standard ()Ljava/util/List;
+	public final fun standard (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
+	public final fun standard (Ljava/util/Locale;)Ljava/util/List;
 	public final fun strict ()Ljava/util/List;
 }
 
@@ -540,11 +625,22 @@ public final class dev/kmemo/guard/UnitGuard : dev/kmemo/guard/MatchGuard {
 	public fun getName ()Ljava/lang/String;
 }
 
+public final class dev/kmemo/guard/Vocabularies {
+	public static final field INSTANCE Ldev/kmemo/guard/Vocabularies;
+	public final fun forLocale (Ljava/util/Locale;)Ldev/kmemo/guard/GuardVocabulary;
+	public final fun getENGLISH ()Ldev/kmemo/guard/GuardVocabulary;
+	public final fun getFRENCH ()Ldev/kmemo/guard/GuardVocabulary;
+	public final fun getGERMAN ()Ldev/kmemo/guard/GuardVocabulary;
+	public final fun getITALIAN ()Ldev/kmemo/guard/GuardVocabulary;
+	public final fun getSPANISH ()Ldev/kmemo/guard/GuardVocabulary;
+}
+
 public final class dev/kmemo/guard/Vocabulary {
 	public static final field INSTANCE Ldev/kmemo/guard/Vocabulary;
 	public final fun getANTONYMS ()Ljava/util/Set;
 	public final fun getDIRECTIONAL_CUES ()Ljava/util/Set;
 	public final fun getNEGATION_MARKERS ()Ljava/util/Set;
+	public final fun getNON_ENTITY_CAPITALS ()Ljava/util/Set;
 	public final fun getSCOPE_MARKERS ()Ljava/util/Set;
 	public final fun getSENTENCE_OPENERS ()Ljava/util/Set;
 	public final fun getSTOPWORDS ()Ljava/util/Set;
