@@ -135,7 +135,10 @@ public class InMemoryStore(
             }
             dropAll(expired)
 
-            scored.sortByDescending { it.similarity }
+            // A primitive comparator, not sortByDescending { it.similarity }: the selector form boxes a
+            // Double per element for the sort key, and this sort runs over every entry in the scope on
+            // the lookup hot path. `Double.compareTo` here is the primitive `dcmpl`, so nothing is boxed.
+            scored.sortWith { a, b -> b.similarity.compareTo(a.similarity) }
             if (scored.size > limit) scored.subList(0, limit).toList() else scored
         }
     }

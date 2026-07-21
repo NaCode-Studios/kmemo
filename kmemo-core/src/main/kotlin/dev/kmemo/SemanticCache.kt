@@ -6,6 +6,9 @@ import dev.kmemo.guard.MatchGuards
 import dev.kmemo.internal.KeyedMutex
 import dev.kmemo.internal.NegativeCache
 import dev.kmemo.store.InMemoryStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Clock
 import java.util.UUID
@@ -93,6 +96,15 @@ import java.time.Duration as JavaDuration
  *   Empty by default, and an empty list is free: with no listeners the cache builds no events and
  *   measures no latencies, so the hot path is exactly as it was. Each listener runs inline and must be
  *   fast and non-throwing — see [CacheListener].
+ * @param writeBehindScope when non-null, turns on **write-behind**: on a [getOrPut] miss the cache
+ *   returns as soon as [compute] does and the store write is applied off the caller's critical path,
+ *   by a single worker running on this scope. Writes are applied in submission order while buffered;
+ *   if the buffer is full the write falls through synchronously rather than being dropped, so a write
+ *   is never lost (only, rarely, reordered under saturation). The window between compute and write is
+ *   a small chance of a duplicate compute for the same brand-new prompt. Cancel this scope to stop the
+ *   worker. `null` (the default) writes through synchronously, and [put]/[warm] always do.
+ * @param writeBehindCapacity how many pending writes to buffer before falling through to a synchronous
+ *   write. Only meaningful when [writeBehindScope] is set.
  * @param clock time source for entry timestamps.
  */
 public class SemanticCache(
@@ -108,6 +120,8 @@ public class SemanticCache(
     private val negativeCacheSize: Int = 0,
     private val negativeCacheTtl: Duration? = null,
     private val listeners: List<CacheListener> = emptyList(),
+    private val writeBehindScope: CoroutineScope? = null,
+    private val writeBehindCapacity: Int = DEFAULT_WRITE_BEHIND_CAPACITY,
     private val clock: Clock = Clock.systemUTC(),
 ) {
 
@@ -121,6 +135,7 @@ public class SemanticCache(
         require(negativeCacheTtl == null || negativeCacheTtl.isPositive()) {
             "negativeCacheTtl must be positive, was $negativeCacheTtl"
         }
+        require(writeBehindCapacity > 0) { "writeBehindCapacity must be positive, was $writeBehindCapacity" }
     }
 
     private val inFlight = KeyedMutex()
@@ -132,6 +147,31 @@ public class SemanticCache(
     // Gates every piece of event machinery — timing measurement and event construction alike — so a
     // cache with no listeners pays nothing for observability. Snapshotted once: listeners is fixed.
     private val observed: Boolean = listeners.isNotEmpty()
+
+    // The write-behind queue, drained in order by one worker on [writeBehindScope]. Null when
+    // write-behind is off, in which case every write is synchronous.
+    private val writeChannel: Channel<CacheEntry>? =
+        if (writeBehindScope != null) Channel(writeBehindCapacity) else null
+
+    init {
+        val channel = writeChannel
+        if (writeBehindScope != null && channel != null) {
+            writeBehindScope.launch {
+                // Single consumer → FIFO. A failed write is swallowed so one bad store call cannot kill
+                // the worker and silently turn every later write synchronous; the entry is simply not
+                // cached, which is a future miss, not a correctness problem.
+                for (entry in channel) {
+                    try {
+                        putEntry(entry)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        // Dropped write; see above.
+                    }
+                }
+            }
+        }
+    }
 
     private val lookupCount = AtomicLong()
     private val hitCount = AtomicLong()
@@ -262,6 +302,54 @@ public class SemanticCache(
         }
     }
 
+    /**
+     * The batch form of [getOrPut]: looks up many prompts at once, embedding them in a **single**
+     * [Embedder.embedAll] call.
+     *
+     * Most embedding providers price and rate-limit per request, not per token, so embedding fifty
+     * prompts in one call is far cheaper and faster than fifty calls. Each prompt is then looked up
+     * with its vector, and every miss is computed with [compute] and cached, exactly as [getOrPut]
+     * does; the returned responses line up with [prompts].
+     *
+     * This is a batch primitive, so it trades a little of [getOrPut]'s cleverness for the batch win:
+     * concurrent-miss coalescing and the negative cache (both keyed on a single prompt) are skipped,
+     * and misses are computed one after another in order — wrap [compute] yourself if you want the
+     * model calls to run concurrently. Writes still honour write-behind when it is on.
+     * [embedFailurePolicy] applies to the batch embed the same way it does to a single one.
+     *
+     * @return the answer for each prompt, in the order of [prompts]. Empty for an empty input.
+     */
+    public suspend fun getOrPutAll(
+        prompts: List<String>,
+        scope: String = DEFAULT_SCOPE,
+        metadata: Map<String, String> = emptyMap(),
+        compute: suspend (String) -> String,
+    ): List<String> {
+        if (prompts.isEmpty()) return emptyList()
+
+        val embeddings = try {
+            embedAllNormalized(prompts)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) return prompts.map { compute(it) }
+            throw e
+        }
+
+        val responses = ArrayList<String>(prompts.size)
+        for (i in prompts.indices) {
+            val prompt = prompts[i]
+            val embedding = embeddings[i]
+            val result = lookup(prompt, scope, embedding)
+            responses += if (result is CacheLookup.Hit) {
+                result.response
+            } else {
+                computeAndPut(prompt, scope, metadata, embedding, compute)
+            }
+        }
+        return responses
+    }
+
     private suspend fun computeAndPut(
         prompt: String,
         scope: String,
@@ -270,7 +358,7 @@ public class SemanticCache(
         compute: suspend (String) -> String,
     ): String {
         val response = compute(prompt)
-        put(prompt, response, scope, metadata, embedding)
+        enqueueOrPut(buildEntry(prompt, response, scope, metadata, embedding))
         return response
     }
 
@@ -314,6 +402,20 @@ public class SemanticCache(
     private suspend fun embed(prompt: String, scope: String): FloatArray {
         negativeCache?.get(scope, prompt)?.let { return it }
         return Vectors.normalize(embedder.embed(prompt))
+    }
+
+    /**
+     * Batch-embeds [prompts] in one [Embedder.embedAll] call and unit-normalizes each. Bypasses the
+     * negative cache — the batch is the deduplication mechanism here — and insists the provider return
+     * one vector per input, in order, since the whole batch path relies on that alignment.
+     */
+    private suspend fun embedAllNormalized(prompts: List<String>): List<FloatArray> {
+        val raw = embedder.embedAll(prompts)
+        require(raw.size == prompts.size) {
+            "embedAll returned ${raw.size} vectors for ${prompts.size} prompts; an Embedder must " +
+                "return one vector per input, in order"
+        }
+        return raw.map { Vectors.normalize(it) }
     }
 
     private suspend fun lookup(
@@ -536,24 +638,45 @@ public class SemanticCache(
         metadata: Map<String, String>,
         embedding: FloatArray,
     ): String {
-        val id = UUID.randomUUID().toString()
-        store.put(
-            CacheEntry(
-                id = id,
-                scope = scope,
-                prompt = prompt,
-                response = response,
-                embedding = embedding,
-                createdAt = clock.instant(),
-                metadata = metadata,
-            ),
-        )
+        val entry = buildEntry(prompt, response, scope, metadata, embedding)
+        putEntry(entry)
+        return entry.id
+    }
+
+    private fun buildEntry(
+        prompt: String,
+        response: String,
+        scope: String,
+        metadata: Map<String, String>,
+        embedding: FloatArray,
+    ): CacheEntry = CacheEntry(
+        id = UUID.randomUUID().toString(),
+        scope = scope,
+        prompt = prompt,
+        response = response,
+        embedding = embedding,
+        createdAt = clock.instant(),
+        metadata = metadata,
+    )
+
+    /** The actual store write shared by every write path: put, getOrPut, warm, and the write-behind worker. */
+    private suspend fun putEntry(entry: CacheEntry) {
+        store.put(entry)
         writeCount.incrementAndGet()
         // The prompt is now answerable from the store, so its "recently missed" note is stale — drop it
         // so a later lookup embeds fresh rather than reusing a vector for a miss that no longer holds.
-        negativeCache?.remove(scope, prompt)
-        if (observed) emit(CacheEvent.Write(scope, prompt, id))
-        return id
+        negativeCache?.remove(entry.scope, entry.prompt)
+        if (observed) emit(CacheEvent.Write(entry.scope, entry.prompt, entry.id))
+    }
+
+    /**
+     * Routes a write through the write-behind queue when it is on, or straight to the store when it is
+     * off. If the queue is full the write falls through synchronously rather than being dropped or
+     * blocking the caller indefinitely, so no write is ever lost.
+     */
+    private suspend fun enqueueOrPut(entry: CacheEntry) {
+        val channel = writeChannel ?: run { putEntry(entry); return }
+        if (channel.trySend(entry).isFailure) putEntry(entry)
     }
 
     /**
@@ -573,31 +696,24 @@ public class SemanticCache(
      */
     public suspend fun warm(entries: List<WarmEntry>): List<String> {
         if (entries.isEmpty()) return emptyList()
-        val embeddings = embedder.embedAll(entries.map { it.prompt })
-        require(embeddings.size == entries.size) {
-            "embedAll returned ${embeddings.size} vectors for ${entries.size} prompts; an Embedder " +
-                "must return one vector per input, in order"
-        }
+        val embeddings = embedAllNormalized(entries.map { it.prompt })
         val now = clock.instant()
         val ids = ArrayList<String>(entries.size)
         for (i in entries.indices) {
-            val entry = entries[i]
-            val id = UUID.randomUUID().toString()
-            store.put(
-                CacheEntry(
-                    id = id,
-                    scope = entry.scope,
-                    prompt = entry.prompt,
-                    response = entry.response,
-                    embedding = embeddings[i],
-                    createdAt = now,
-                    metadata = entry.metadata,
-                ),
+            val warm = entries[i]
+            val entry = CacheEntry(
+                id = UUID.randomUUID().toString(),
+                scope = warm.scope,
+                prompt = warm.prompt,
+                response = warm.response,
+                embedding = embeddings[i],
+                createdAt = now,
+                metadata = warm.metadata,
             )
-            writeCount.incrementAndGet()
-            negativeCache?.remove(entry.scope, entry.prompt)
-            if (observed) emit(CacheEvent.Write(entry.scope, entry.prompt, id))
-            ids += id
+            // Warming writes through synchronously even under write-behind: a preloaded cache you are
+            // about to serve from should be durable before warm() returns, not eventually.
+            putEntry(entry)
+            ids += entry.id
         }
         return ids
     }
@@ -623,5 +739,8 @@ public class SemanticCache(
 
         /** Nearest entries examined per lookup. Enough to recover when a guard vetoes the closest. */
         public const val DEFAULT_CANDIDATES: Int = 5
+
+        /** Pending write-behind writes buffered before a write falls through synchronously. */
+        public const val DEFAULT_WRITE_BEHIND_CAPACITY: Int = 1_024
     }
 }
