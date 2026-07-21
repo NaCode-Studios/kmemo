@@ -2,7 +2,8 @@
 
 This document tracks where Kmemo is going. It complements the [CHANGELOG](CHANGELOG.md)
 (which records what has already shipped) and the short *Roadmap* section in the
-[README](README.md).
+[README](README.md). How milestones and shipped-state are marked here follows the shared
+[roadmap conventions](ROADMAP-CONVENTIONS.md) — the same standard Kdrant uses.
 
 Kmemo is pre-`1.0`: the public API may change between minor versions, and the milestones below may be
 re-ordered as the project learns. Every public-API change is tracked by the
@@ -27,7 +28,27 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   new guard or matcher earns its place against that corpus before it ships. Positioning competes on
   false-hit protection, diagnosability, DX and footprint — not on being the fastest ANN index.
 
-## Status — `0.1.0` (baseline)
+## Status — `0.2.0` (current)
+
+`0.2.0` sharpens the two things Kmemo competes on — knowing *why* a lookup was decided the way it was,
+and covering the near misses lexical rules cannot — completing **Tier 0** on top of the `0.1.0` core:
+
+- **Per-guard measurement (M2):** `CacheStats.guardRejectionsByGuard` (a per-`MatchGuard.name`
+  breakdown where every configured guard is a key, so a silent guard reads as `0`), and
+  `SemanticCache.explain(prompt, scope)` — a read-only diagnostic returning each nearby candidate with
+  *every* guard's verdict and whether the threshold or a guard stood in the way. It moves no counter and
+  never runs the `Verifier`.
+- **The Verifier, completed (M3):** fail-closed semantics — a `Verifier` that throws or exceeds
+  `verifierTimeout` now *rejects* the candidate rather than serving it unconfirmed (`CancellationException`
+  still propagates) — and `CachingVerifier` / `Verifier.caching(…)`, which memoizes verdicts per
+  `(query, cachedPrompt)` so a hot near miss is judged once, not on every lookup.
+- **Docs & canonical home:** the API reference is published to GitHub Pages via Dokka and linked from the
+  README; the repository is now `NaCode-Studios/Kmemo`, with POM/SCM metadata and CI badges to match.
+
+Published to Maven Central and GitHub Packages as `0.2.0` (tag `v0.2.0`, 2026-07-20). The next release —
+`0.3.0` — is the **Tier 1** store work (M4–M7) below.
+
+## Status — `0.1.0`
 
 `0.1.0` is the first release: a complete, tested single-module core. It provides:
 
@@ -37,7 +58,7 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
 - **The seams:** `Embedder` and `CacheStore` (with `ScoredEntry`), each a single `suspend` method, so
   the store owns *where entries live and when they expire* while the cache owns *whether a candidate
   is good enough to serve*.
-- **The guards (M-of-the-project's whole point):** ten lexical guards in `MatchGuards.standard()`
+- **The guards (the project's whole point):** ten lexical guards in `MatchGuards.standard()`
   (`Numeric`, `Unit`, `Temporal`, `Negation`, `Antonym`, `Entity`, `Substitution`, `Scope`,
   `Direction`, `LexicalDivergence`) plus an opt-in `LengthRatioGuard`, each taking its word lists as
   a constructor parameter; an optional `Verifier` for what lexical rules cannot see.
@@ -47,17 +68,16 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   153), the last written blind. Blind validation: near misses rejected **67%**, paraphrases kept
   **88%**.
 
-Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07-19). The next
-release — `0.2.0` — is the M2–M3 work below.
+Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07-19).
 
 ## Progress
 
 | Milestone | Status |
 | --- | --- |
-| **0.1.0 core** | ✅ Implemented and tested. |
-| **M1** · Ship `0.1.0` to Maven Central | ✅ Shipped — `0.1.0` live on Maven Central + GitHub Packages. |
-| **M2** · Per-guard measurement & observability | ✅ Shipped. |
-| **M3** · The Verifier, completed | ✅ Shipped (speculative batch verification deferred by decision). |
+| **0.1.0 core** | ✅ Shipped in `0.1.0`. |
+| **M1** · Ship `0.1.0` to Maven Central | ✅ Shipped in `0.1.0`. |
+| **M2** · Per-guard measurement & observability | ✅ Shipped in `0.2.0`. |
+| **M3** · The Verifier, completed | ✅ Shipped in `0.2.0`. |
 | **M4** · Store conformance suite (TCK) | Planned. |
 | **M5** · Redis store | Planned. |
 | **M6** · Postgres / pgvector store | Planned. |
@@ -93,19 +113,30 @@ decided the way it was, and covering the near misses lexical rules cannot.
 
 ### M1 · Ship `0.1.0` to Maven Central — `S`
 
-Turn the built core into an artifact people can depend on. **Done — `0.1.0` is live on Maven Central
-and GitHub Packages** (tag `v0.1.0`); the milestone is kept as the record of how Kmemo ships.
+**Status: ✅ Shipped in `0.1.0`.** Delivered: `kmemo-core` published to Maven Central under
+`io.github.nacode-studios` (signing, `sources` + `javadoc` jars) and mirrored to GitHub Packages via the
+tag-driven `release.yml`; rich POM metadata and a Dokka API-docs site on GitHub Pages (`docs.yml`) linked
+from the README; and `apiCheck` as a CI release gate (`./gradlew build` verifies the `*.api` compatibility
+contract on every push and PR). **Deferred:** a `SNAPSHOT`-on-`main` job → M15 — it needs `-SNAPSHOT`
+versioning discipline, and like Kdrant, Kmemo ships tag-driven releases until then. The milestone is kept
+as the record of how Kmemo ships.
+
+Turn the built core into an artifact people can depend on.
 
 - Publish `kmemo-core` to Maven Central under `io.github.nacode-studios` (signing, `sources` + `javadoc`
-  jars) and mirror to GitHub Packages, via the tag-driven `release.yml`. ✅ shipped.
+  jars) and mirror to GitHub Packages, via the tag-driven `release.yml`.
 - Rich POM metadata (`description`, `url`, `scm`, license, developers) and a Dokka API-docs site on
-  GitHub Pages (`docs.yml`), linked from the README. ✅
+  GitHub Pages (`docs.yml`), linked from the README.
 - `apiCheck` runs in CI as a release gate — `./gradlew build` verifies the `*.api` compatibility
-  contract on every push and PR. ✅
-- A `SNAPSHOT` job on `main` is **deferred to M15**: it needs `-SNAPSHOT` versioning discipline, and —
-  like Kdrant — Kmemo ships tag-driven releases only until then.
+  contract on every push and PR.
 
 ### M2 · Per-guard measurement & observability — `S`
+
+**Status: ✅ Shipped in `0.2.0`.** Delivered: `CacheStats.guardRejectionsByGuard` (a per-`MatchGuard.name`
+breakdown that sums to `guardRejections`, with every configured guard a key so a silent guard reads as
+`0`); `SemanticCache.explain(prompt, scope)` returning each nearby candidate with *every* guard's verdict;
+the corpus harness `GuardReport` (per-guard precision / recall across all three corpora, emitted as a
+machine-readable artifact); and stable, documented `CacheLookup.Miss.detail` guard attribution.
 
 Today `CacheStats` counts *why* a lookup missed at the reason granularity (`belowThreshold`,
 `guardRejections`, `verifierRejections`). Tuning needs one level finer: *which* guard, how often, and
@@ -122,6 +153,15 @@ at what cost.
   verdict — the tool you reach for when a hit you expected did not happen.
 
 ### M3 · The Verifier, completed — `M`
+
+**Status: ✅ Shipped in `0.2.0`.** Delivered: fail-closed semantics — a `Verifier` that throws or exceeds
+`verifierTimeout` rejects the candidate (a `REJECTED_BY_VERIFIER` miss) rather than serving it unconfirmed,
+`CancellationException` still propagating — and `CachingVerifier` / `Verifier.caching(…)`, memoizing
+verdicts per `(query, cachedPrompt)`, bounded and optionally TTL'd, with a throwing delegate never cached;
+plus a reference judge prompt documented as a provider-agnostic recipe. **Deferred:** speculative **batch /
+parallel verification** is decided *against*, not postponed — the lookup verifies candidates best-first and
+short-circuits, so parallelizing would issue more model calls to save latency, inverting the cost model the
+cache is built on.
 
 A third of the validation near misses need world knowledge (`deworm a puppy` vs `deworm an adult dog`,
 `boiling point of ethanol` vs `methanol`) — invisible to any lexical rule. The `Verifier` seam exists;
