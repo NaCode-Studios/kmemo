@@ -84,6 +84,18 @@ public object Vocabulary {
     )
 
     /**
+     * Words capitalized by grammar rather than by reference, read by [Text.entityTokens] — the ones
+     * that would otherwise look like named entities wherever they appear.
+     *
+     * English has exactly one that matters: the first-person pronoun `I`, which is capitalized
+     * mid-sentence and would make every "what should I do" look like it named something. Most other
+     * languages capitalize no pronoun this way, so their packs leave this empty; German, which
+     * capitalizes every noun, needs a different strategy than this set can express and so keeps the
+     * entity guard's other rules doing the work.
+     */
+    public val NON_ENTITY_CAPITALS: Set<String> = setOf("i")
+
+    /**
      * Unit and currency tokens, read by [UnitGuard], each mapped to a canonical name.
      *
      * The canonical form is what makes `km` and `kilometers` the same unit. A flat set would treat

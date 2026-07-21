@@ -8,7 +8,7 @@ plugins {
 
 subprojects {
     group = "io.github.nacode-studios"
-    version = "0.4.0"
+    version = "0.5.0"
 }
 
 apiValidation {
@@ -17,6 +17,8 @@ apiValidation {
     ignoredProjects.add("kmemo-store-tck")
     // kmemo-benchmarks is a JMH harness, not a published library — it has no public API to guard.
     ignoredProjects.add("kmemo-benchmarks")
+    // kmemo-bom is a java-platform (dependency constraints only) — no code, no API to guard.
+    ignoredProjects.add("kmemo-bom")
 }
 
 // Aggregate the documented modules into one HTML API site, published to GitHub Pages by docs.yml.

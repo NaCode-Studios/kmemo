@@ -8,6 +8,9 @@ import dev.kmemo.internal.NegativeCache
 import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Clock
@@ -348,6 +351,81 @@ public class SemanticCache(
             }
         }
         return responses
+    }
+
+    /**
+     * A [getOrPut] that caches a **structured** response of type [T], not just its text.
+     *
+     * The cache still stores a `String` — [codec] is what turns your object into one and back — so
+     * caching a parsed JSON object, an extracted record, or a tool-call is the same one-embedding
+     * round trip as caching text. On a hit the stored text is decoded; on a miss [compute] runs, its
+     * result is encoded and cached, and the same value is returned. See [ResponseCodec] for the
+     * round-trip contract.
+     *
+     * ```kotlin
+     * val weather: Weather = cache.getOrPut(prompt, weatherCodec) { llm.extractWeather(it) }
+     * ```
+     */
+    public suspend fun <T> getOrPut(
+        prompt: String,
+        codec: ResponseCodec<T>,
+        scope: String = DEFAULT_SCOPE,
+        metadata: Map<String, String> = emptyMap(),
+        compute: suspend (String) -> T,
+    ): T {
+        val text = getOrPut(prompt, scope, metadata) { p -> codec.encode(compute(p)) }
+        return codec.decode(text)
+    }
+
+    /**
+     * A [getOrPut] for **streaming** completions: caches the assembled text of a streamed answer and
+     * replays it on a hit, so a streaming caller never has to fall back to the blocking path.
+     *
+     * On a hit the returned [Flow] emits the cached answer (as a single element — kmemo caches the
+     * text, not the original chunk boundaries). On a miss the flow from [compute] is passed straight
+     * through to the collector chunk by chunk *while* being accumulated, and the assembled text is
+     * written to the cache **only if the stream completes normally** — a stream that fails or is
+     * cancelled midway caches nothing, so a partial answer is never served later.
+     *
+     * The returned flow is cold: nothing is computed or streamed until it is collected, and the
+     * embedding + lookup are done once, up front. Concurrent-miss coalescing and write-behind do not
+     * apply to this path. If the embedder throws under [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE], the
+     * raw stream from [compute] is returned uncached.
+     *
+     * ```kotlin
+     * cache.getOrPutStreaming(prompt) { llm.completeStreaming(it) }.collect { chunk -> print(chunk) }
+     * ```
+     */
+    public suspend fun getOrPutStreaming(
+        prompt: String,
+        scope: String = DEFAULT_SCOPE,
+        metadata: Map<String, String> = emptyMap(),
+        compute: suspend (String) -> Flow<String>,
+    ): Flow<String> {
+        val embedStart = if (observed) System.nanoTime() else 0L
+        val embedding = try {
+            embed(prompt, scope)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) return compute(prompt)
+            throw e
+        }
+        val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
+
+        val result = lookup(prompt, scope, embedding, embedNanos = embedNanos)
+        if (result is CacheLookup.Hit) return flowOf(result.response)
+
+        return flow {
+            val assembled = StringBuilder()
+            compute(prompt).collect { chunk ->
+                assembled.append(chunk)
+                emit(chunk)
+            }
+            // Reached only when the upstream flow completed without throwing (and was not cancelled):
+            // a partial stream must never be cached as if it were the whole answer.
+            put(prompt, assembled.toString(), scope, metadata, embedding)
+        }
     }
 
     private suspend fun computeAndPut(

@@ -5,9 +5,6 @@ internal object Text {
 
     private val TOKEN = Regex("[\\p{L}\\p{N}]+")
 
-    /** Capitalized by grammar rather than by reference. English has exactly one that matters. */
-    private val NON_ENTITY_CAPITALS = setOf("i")
-
     /** A colon or semicolon never ends a sentence, so neither belongs here. */
     private val SENTENCE_END = setOf('.', '?', '!')
 
@@ -95,7 +92,11 @@ internal object Text {
      *
      * Returned lowercased, so `GitHub` and `Github` are the same entity.
      */
-    fun entityTokens(text: String): Set<String> {
+    fun entityTokens(
+        text: String,
+        sentenceOpeners: Set<String> = Vocabulary.SENTENCE_OPENERS,
+        nonEntityCapitals: Set<String> = Vocabulary.NON_ENTITY_CAPITALS,
+    ): Set<String> {
         val matches = TOKEN.findAll(text).toList()
         val result = LinkedHashSet<String>()
         for ((index, match) in matches.withIndex()) {
@@ -103,8 +104,8 @@ internal object Text {
             if (index == 0) continue
             if (token.length < 2) continue
             if (!token.first().isUpperCase()) continue
-            if (token.lowercase() in NON_ENTITY_CAPITALS) continue
-            if (token.lowercase() in Vocabulary.SENTENCE_OPENERS && opensSentence(text, matches, index)) continue
+            if (token.lowercase() in nonEntityCapitals) continue
+            if (token.lowercase() in sentenceOpeners && opensSentence(text, matches, index)) continue
             result.add(token.lowercase())
         }
         return result
