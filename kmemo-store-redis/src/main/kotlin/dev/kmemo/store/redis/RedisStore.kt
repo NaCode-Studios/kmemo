@@ -11,6 +11,7 @@ import io.lettuce.core.output.NestedMultiOutput
 import io.lettuce.core.output.StatusOutput
 import io.lettuce.core.protocol.CommandArgs
 import io.lettuce.core.protocol.ProtocolKeyword
+import io.lettuce.core.protocol.ProtocolVersion
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -46,8 +47,9 @@ import kotlin.time.Duration
  * **Requirements.** Redis with the RediSearch module (e.g. `redis/redis-stack`). If the module is
  * absent, the first [put] fails fast with a clear message rather than silently degrading to no search.
  *
- * @param connection an open Lettuce connection with a **byte-array** codec (see the [RedisClient]
- *   secondary constructor for the common case).
+ * @param connection an open Lettuce connection with a **byte-array** codec, speaking **RESP2** (this
+ *   store parses `FT.SEARCH` replies as classic RESP2 arrays; RESP3 returns a map it does not decode).
+ *   The [RedisClient] secondary constructor handles both for you — prefer it.
  * @param indexName RediSearch index name; give each logical cache its own.
  * @param keyPrefix prefix for this cache's hash keys; the index only sees keys under it.
  * @param ttl how long an entry stays valid, or `null` to keep it until removed.
@@ -63,14 +65,17 @@ public class RedisStore(
     private val closeConnection: Boolean = false,
 ) : CacheStore, AutoCloseable {
 
-    /** Connects to [client] with a byte-array codec and owns the connection (closed by [close]). */
+    /**
+     * Connects to [client] with a byte-array codec, **pinning RESP2** (RediSearch replies are parsed as
+     * RESP2 arrays), and owns the connection (closed by [close]).
+     */
     public constructor(
         client: RedisClient,
         indexName: String = "kmemo-idx",
         keyPrefix: String = "kmemo:",
         ttl: Duration? = null,
         clock: Clock = Clock.systemUTC(),
-    ) : this(client.connect(ByteArrayCodec.INSTANCE), indexName, keyPrefix, ttl, clock, closeConnection = true)
+    ) : this(connectResp2(client), indexName, keyPrefix, ttl, clock, closeConnection = true)
 
     init {
         require(ttl == null || ttl.isPositive()) { "ttl must be positive, was $ttl" }
@@ -308,4 +313,14 @@ public class RedisStore(
         private val METADATA_SERIALIZER = MapSerializer(String.serializer(), String.serializer())
         private const val TAG_SPECIALS = ",.<>{}[]\"':;!@#\$%^&*()-+=~/ \t\n"
     }
+}
+
+/**
+ * Opens a byte-array connection pinned to RESP2. Lettuce 6 negotiates RESP3 by default, and RediSearch
+ * returns `FT.SEARCH` as a RESP3 *map* rather than the classic RESP2 array this store parses — so the
+ * protocol is fixed before connecting.
+ */
+private fun connectResp2(client: RedisClient): StatefulRedisConnection<ByteArray, ByteArray> {
+    client.setOptions(client.options.mutate().protocolVersion(ProtocolVersion.RESP2).build())
+    return client.connect(ByteArrayCodec.INSTANCE)
 }
