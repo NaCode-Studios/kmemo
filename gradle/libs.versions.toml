@@ -12,6 +12,10 @@ micrometer = "1.14.2"
 slf4j = "2.0.16"
 logback = "1.5.12"
 jmh = "0.7.2"
+springBoot = "3.4.1"
+springAi = "1.0.0"
+langchain4j = "1.0.1"
+ktor = "3.0.3"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -39,6 +43,17 @@ micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "mic
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 # Test-only: a real SLF4J backend the logging adapter's tests attach a ListAppender to and assert on.
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+# Test-only: AssertableApplicationContext (Spring Boot's test runner) implements an AssertJ type, which
+# must be on the compile classpath even when the tests assert with kotlin.test instead.
+assertj-core = { module = "org.assertj:assertj-core", version = "3.26.3" }
+
+# Ecosystem integrations (opt-in modules; never on the kmemo-core classpath).
+spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure", version.ref = "springBoot" }
+spring-boot = { module = "org.springframework.boot:spring-boot", version.ref = "springBoot" }
+spring-boot-test = { module = "org.springframework.boot:spring-boot-test", version.ref = "springBoot" }
+spring-ai-client-chat = { module = "org.springframework.ai:spring-ai-client-chat", version.ref = "springAi" }
+langchain4j-core = { module = "dev.langchain4j:langchain4j-core", version.ref = "langchain4j" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
